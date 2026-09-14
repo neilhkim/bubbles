@@ -1,0 +1,2629 @@
+<!-- THOUGHT BUBBLES — paste this whole file into the HTML pane on CodePen. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Thought Bubbles</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='bg' cx='30%25' cy='25%25' r='90%25'%3E%3Cstop offset='0' stop-color='%233b3b46'/%3E%3Cstop offset='1' stop-color='%231e1e21'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23bg)'/%3E%3Ccircle cx='26' cy='27' r='14' fill='%23e8e4f0'/%3E%3Ccircle cx='41' cy='24' r='8' fill='%239b95b5'/%3E%3Ccircle cx='45' cy='41' r='5' fill='%236e697f'/%3E%3Ccircle cx='18' cy='44' r='4' fill='%23f5d99b'/%3E%3C/svg%3E" />
+<link rel="shortcut icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='bg' cx='30%25' cy='25%25' r='90%25'%3E%3Cstop offset='0' stop-color='%233b3b46'/%3E%3Cstop offset='1' stop-color='%231e1e21'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23bg)'/%3E%3Ccircle cx='26' cy='27' r='14' fill='%23e8e4f0'/%3E%3Ccircle cx='41' cy='24' r='8' fill='%239b95b5'/%3E%3Ccircle cx='45' cy='41' r='5' fill='%236e697f'/%3E%3Ccircle cx='18' cy='44' r='4' fill='%23f5d99b'/%3E%3C/svg%3E" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;1,400&display=swap');
+
+  :root{
+    --ink:        #e8e4f0;
+    --ink-soft:   #9b95b5;
+    --muted:      #6e697f;
+    --hold:       #f5d99b;
+    --panel:      rgba(50,50,55,0.80);
+    --panel-line: rgba(255,255,255,0.10);
+    --space-1:    #2a2a2e;
+    --space-2:    #1e1e21;
+    --bg:         #2c2c30;
+  }
+
+  @media (prefers-color-scheme: light){
+    :root{
+      --ink:        #1a1a20;
+      --ink-soft:   #555060;
+      --muted:      #8a8595;
+      --hold:       #b07d20;
+      --panel:      rgba(210,210,215,0.85);
+      --panel-line: rgba(0,0,0,0.10);
+      --space-1:    #e0e0e3;
+      --space-2:    #d4d4d8;
+      --bg:         #d8d8dc;
+    }
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family: 'Spectral', Georgia, serif;
+    color: var(--ink);
+    background: var(--bg);
+    overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+    touch-action:none;
+  }
+
+  /* the mind-space where thoughts drift */
+  #sky{ position:fixed; inset:0; overflow:hidden; cursor:crosshair; -webkit-user-select:none; }
+  #links{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  .bubble{
+    position:absolute; top:0; left:0;
+    border-radius:10px;
+    display:grid; place-items:center;
+    text-align:center; line-height:1.18;
+    color:#fff;
+    cursor:grab;
+    will-change: transform;
+    transition: box-shadow .25s ease, outline-color .25s ease;
+  }
+  .bubble .txt{
+    width:72%; max-height:86%; overflow:hidden;
+    white-space:pre-wrap; overflow-wrap:break-word; hyphens:auto;
+    pointer-events:none;
+    text-shadow: 0 1px 6px rgba(0,0,0,.35);
+  }
+  .bubble .img{
+    width:100%; height:100%; object-fit:cover;
+    border-radius:10px; pointer-events:auto; cursor:zoom-in;
+  }
+  #lightbox{
+    position:fixed; inset:0; z-index:40; display:grid; place-items:center;
+    background:rgba(0,0,0,0.72); cursor:zoom-out;
+  }
+  #lightbox[hidden]{ display:none; }
+  #lightbox img{
+    max-width:min(92vw, 1100px); max-height:92vh;
+    border-radius:10px; box-shadow:0 24px 70px rgba(0,0,0,.6);
+  }
+  #add-img-preview{
+    position:relative; margin-top:8px; border-radius:10px; overflow:hidden;
+    border:1px solid var(--panel-line); max-height:160px;
+  }
+  #add-img-preview[hidden]{ display:none; }
+  #add-img-preview img{ width:100%; max-height:160px; object-fit:contain; display:block; background:rgba(0,0,0,.15); }
+  #add-img-preview button{
+    position:absolute; top:6px; right:6px; all:unset; cursor:pointer;
+    width:24px; height:24px; border-radius:50%; text-align:center; line-height:24px;
+    background:rgba(0,0,0,.55); color:#fff; font:600 13px/24px ui-sans-serif,system-ui,sans-serif;
+  }
+  .bubble.dragging{ cursor:grabbing; }
+  .bubble.pop{ animation: pop .28s ease-out; }
+  @keyframes pop{ 0%{ filter:brightness(1.6); } 100%{ filter:brightness(1); } }
+
+  /* held = stopped shrinking */
+  .bubble.held{ outline:1.5px dashed var(--hold); outline-offset:5px; }
+
+  /* super highlight = stand out above everything else */
+  .bubble.highlight{
+    z-index:15;
+    outline:3px solid #fff44f;
+    outline-offset:6px;
+    box-shadow:
+      0 0 0 3px rgba(255,244,79,.35),
+      0 0 40px 10px rgba(255,244,79,.55),
+      0 14px 34px rgba(0,0,0,.45) !important;
+  }
+  .bubble .pin{
+    position:absolute; top:-2px; right:-2px;
+    font-size:13px; opacity:0; transform:scale(.4) rotate(-15deg);
+    transition:opacity .2s ease, transform .2s ease; pointer-events:none;
+    text-shadow:0 0 6px rgba(0,0,0,.6);
+  }
+  .bubble.held .pin{ opacity:1; transform:scale(1) rotate(-15deg); }
+
+  /* ── composer ── */
+  #composer{
+    position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+    width:min(420px, calc(100% - 28px));
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:10px; padding:5px 10px 5px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  #composer textarea{
+    width:100%; resize:none; border:0; outline:none; background:transparent;
+    color:var(--ink); font-family:inherit; font-size:10px; line-height:1.4;
+    min-height:14px; max-height:70px;
+    scrollbar-width:none; overflow-y:auto;
+  }
+  #composer textarea::-webkit-scrollbar{ display:none; }
+  #composer textarea::placeholder{ color:var(--muted); }
+  .hint{
+    margin-top:3px; font-size:8px; letter-spacing:.09em; text-transform:uppercase;
+    font-family: ui-sans-serif, system-ui, sans-serif; color:var(--muted);
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .hint b{ color:var(--ink-soft); font-weight:600; }
+  kbd{
+    font:600 7px/1 ui-monospace, monospace; color:var(--ink-soft);
+    background:rgba(255,255,255,.06); border:1px solid var(--panel-line);
+    border-radius:3px; padding:1px 3px; letter-spacing:0;
+  }
+
+  /* ── past bubbles drawer ── */
+  #forget-toggle{
+    font:700 15px/1 ui-sans-serif, system-ui, sans-serif;
+    color:var(--ink-soft); background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:10px; padding:8px 13px; cursor:pointer;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    letter-spacing:.1em;
+  }
+  #forget-toggle:hover{ color:var(--ink); }
+  #forget-toggle .count{ display:none; }
+  #drawer{
+    position:fixed; top:0; right:0; height:100%; width:min(320px, 84%);
+    background:var(--panel); border-left:1px solid var(--panel-line);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    transform:translateX(100%); transition:transform .32s cubic-bezier(.2,.8,.2,1);
+    z-index:6; display:flex; flex-direction:column; padding:56px 16px 16px;
+  }
+  #drawer.open{ transform:translateX(0); }
+  #drawer-close{
+    position:absolute; top:14px; right:14px;
+    width:32px; height:32px; line-height:30px; text-align:center;
+    font-size:22px; color:var(--ink-soft); cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid var(--panel-line);
+    border-radius:8px; padding:0;
+  }
+  #drawer-close:hover{ color:var(--ink); }
+  #drawer h2{
+    margin:0 0 10px; font-size:13px; letter-spacing:.16em; text-transform:uppercase;
+    font-family: ui-sans-serif, system-ui, sans-serif; color:var(--ink-soft); font-weight:600;
+  }
+  #forgotten-search{
+    width:100%; margin-bottom:10px; padding:7px 10px;
+    background:rgba(255,255,255,.06); border:1px solid var(--panel-line);
+    border-radius:8px; color:var(--ink); font:14px/1 ui-sans-serif, system-ui, sans-serif;
+    outline:none;
+  }
+  #forgotten-search::placeholder{ color:var(--muted); }
+  #forgotten-list{ overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  .ghost{
+    display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,.04); border:1px solid var(--panel-line);
+    border-radius:10px; padding:9px 11px;
+  }
+  .ghost .dot{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
+  .ghost .g-txt{
+    flex:1; font-size:14px; color:var(--ink-soft);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .ghost button{
+    flex:0 0 auto; cursor:pointer; font:600 11px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--space-2);
+    background:var(--hold); border:0; border-radius:7px; padding:7px 10px;
+  }
+  .ghost button:hover{ filter:brightness(1.08); }
+  .empty{ font-size:14px; color:var(--muted); font-style:italic; }
+
+  :focus-visible{ outline:2px solid var(--hold); outline-offset:3px; }
+
+  /* control panel — one packaged column of sliders */
+  #left-stack{
+    position:fixed; top:16px; left:16px; z-index:5;
+    display:flex; flex-direction:column; align-items:flex-start; gap:6px;
+  }
+  #panel{
+    display:flex; flex-direction:column; gap:10px;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:14px; padding:12px 14px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    width:150px; max-width:calc(100vw - 32px);
+  }
+  #panel .sl{
+    display:grid; grid-template-columns:1fr auto; grid-template-rows:auto auto;
+    gap:2px 6px; align-items:center;
+    font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  #panel .sl span{ color:var(--hold); text-align:right; font-weight:700; }
+  #panel .sl input[type=range]{ grid-column:1 / -1; width:100%; accent-color:var(--hold); cursor:pointer; margin:0; }
+  #panel input[type=range]{ accent-color:var(--hold); cursor:pointer; }
+  .chip{
+    cursor:pointer; font:600 11px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.08em; color:var(--ink-soft); white-space:nowrap;
+    background:rgba(255,255,255,.05); border:1px solid var(--panel-line);
+    border-radius:8px; padding:8px 10px; text-align:center;
+  }
+  .chip.wide{
+    width:100%; background:rgba(245,217,155,0.12); border-color:rgba(245,217,155,0.3);
+    color:var(--hold);
+  }
+  .chip.wide:hover{ background:rgba(245,217,155,0.2); }
+  .io-row{ display:flex; gap:6px; }
+  .io-row .chip{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+
+  #palette-picker{
+    position:fixed; z-index:50;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:12px; padding:6px;
+    display:flex; flex-direction:column; gap:3px;
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 12px 36px rgba(0,0,0,.4);
+    max-height:calc(100vh - 16px); overflow-y:auto;
+  }
+  #palette-picker[hidden]{ display:none; }
+  .pal-row{
+    display:flex; align-items:center; gap:4px;
+    padding:5px 8px; border-radius:8px; cursor:pointer;
+  }
+  .pal-row:hover{ background:rgba(128,128,128,.15); }
+  .pal-row.pal-active{ background:rgba(128,128,128,.22); }
+  .pal-swatch{
+    width:14px; height:14px; border-radius:3px; flex:0 0 auto;
+  }
+  .pal-name{
+    font:600 10px/1 ui-sans-serif,system-ui,sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft); margin-left:2px; white-space:nowrap;
+    flex:1;
+  }
+  .pal-num{
+    font:700 9px/1 ui-monospace, monospace;
+    color:var(--muted); margin-left:8px; flex:0 0 auto;
+  }
+  #banner{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5;
+    display:none; font:600 12px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.04em; color:var(--space-2); background:var(--hold);
+    border-radius:999px; padding:9px 16px; box-shadow:0 8px 22px rgba(0,0,0,.35);
+  }
+
+  /* selected (first) thought while connecting */
+  .bubble.sel{ outline:2.5px solid #fff; outline-offset:4px; }
+  body.mode-delete  #sky{ cursor:not-allowed; }
+  body.mode-connect #sky{ cursor:cell; }
+  body.mode-branch  #sky{ cursor:copy; }
+  body.mode-color   #sky{ cursor:pointer; }
+
+  /* right-click context menu on a bubble */
+  #context-menu{
+    position:fixed; z-index:30; display:flex; flex-direction:column; gap:3px;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:12px; padding:6px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    min-width:200px; max-width:min(320px, calc(100vw - 24px));
+    box-shadow:0 18px 44px rgba(0,0,0,.5);
+  }
+  #context-menu[hidden]{ display:none; }
+  #ctx-preview{
+    font-family:'Spectral', Georgia, serif; font-size:14px; line-height:1.4;
+    color:var(--ink); white-space:pre-wrap; word-break:break-word;
+    max-height:180px; overflow-y:auto;
+    padding:9px 10px; margin-bottom:3px;
+    background:rgba(255,255,255,.05); border-radius:8px;
+    border-bottom:1px solid var(--panel-line);
+  }
+  #ctx-preview:empty{ display:none; }
+  #context-menu button{
+    all:unset; cursor:pointer; box-sizing:border-box; width:100%;
+    font:600 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing:.05em;
+    color:var(--ink-soft); padding:9px 12px; border-radius:8px;
+  }
+  #context-menu button:hover{ background:rgba(255,255,255,.08); color:var(--ink); }
+  #context-menu button[data-action="delete"]:hover{ background:rgba(255,90,90,.18); color:#ffb3b3; }
+
+  /* simplified phone experience: composer + bubbles only */
+  body.phone #forget-toggle,
+  body.phone #banner{ display:none !important; }
+  body.phone .desktop-only{ display:none !important; }
+  .phone-only{ display:none; }
+  body.phone .phone-only{ display:inline; }
+  .phone-only-flex{ display:none; }
+  body.phone .phone-only-flex{ display:flex; }
+
+  /* shared styling for centered popups (branch + mobile add) */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:20; display:grid; place-items:center;
+    background:rgba(0,0,0,0.30); backdrop-filter:blur(1px); -webkit-backdrop-filter:blur(1px);
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal-overlay .card{
+    width:min(420px, calc(100% - 32px));
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:16px; padding:18px 18px 16px;
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+  }
+  .modal-overlay h3{
+    margin:0 0 12px; font:600 13px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft);
+  }
+  .modal-overlay textarea{
+    width:100%; resize:none; border:1px solid var(--panel-line); outline:none;
+    background:var(--space-1); color:var(--ink);
+    font-family:inherit; font-size:17px; line-height:1.4;
+    border-radius:10px; padding:10px 12px;
+  }
+  .modal-overlay textarea::placeholder{ color:var(--muted); }
+  .modal-overlay .mini{
+    margin:8px 2px 14px; font-size:11px; letter-spacing:.08em;
+    font-family: ui-sans-serif, system-ui, sans-serif; color:var(--muted);
+  }
+  .modal-overlay .row{ display:flex; justify-content:flex-end; gap:10px; }
+  .modal-overlay button{
+    cursor:pointer; font:600 12px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.06em; border-radius:9px; padding:10px 16px; border:1px solid var(--panel-line);
+  }
+  .modal-overlay .ghost-btn{ background:transparent; color:var(--ink-soft); }
+  .modal-overlay .go-btn{ background:var(--hold); color:var(--space-2); border-color:var(--hold); }
+
+  /* divider lines */
+  #divider-h, #divider-v, #divider-v2{ position:absolute; pointer-events:none; }
+  #divider-h{
+    left:0; right:0; top:50%; height:0;
+    border-top:2px dashed rgba(180,165,230,0.35);
+  }
+  #divider-v{
+    top:0; bottom:0; left:50%; width:0;
+    border-left:2px dashed rgba(180,165,230,0.35);
+  }
+  #divider-v2{
+    top:0; bottom:0; left:66.67%; width:0;
+    border-left:2px dashed rgba(180,165,230,0.35);
+  }
+  #divider-h[hidden], #divider-v[hidden], #divider-v2[hidden]{ display:none; }
+
+  /* section titles */
+  #section-titles{ position:absolute; inset:0; pointer-events:none; }
+  .sec-title{
+    position:absolute; transform:translateX(-50%);
+    pointer-events:auto; cursor:text;
+    font:600 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.16em;
+    color:var(--ink-soft); text-align:center;
+    padding:5px 12px; border-radius:8px;
+    max-width:min(280px, 30vw);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    background:transparent; border:1px solid transparent;
+    transition:background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .sec-title:hover{
+    background:rgba(128,128,128,.14); border-color:var(--panel-line); color:var(--ink);
+  }
+  .sec-title.empty-title{ color:var(--muted); opacity:.45; font-style:italic; }
+  .sec-title.empty-title:hover{ opacity:1; }
+  .sec-title.editing{
+    background:var(--panel); border-color:var(--hold); color:var(--ink);
+    white-space:pre; overflow:visible; text-overflow:clip; outline:none;
+    font-style:normal; opacity:1;
+    -webkit-user-select:text; user-select:text; touch-action:auto;
+  }
+  /* bigger tap target + editable caret on touch */
+  body.phone .sec-title{
+    font-size:15px; padding:9px 16px; max-width:min(280px, 70vw);
+    touch-action:auto;
+  }
+
+  /* mobile floating buttons — just two: menu + add */
+  #mobile-btns{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    gap:14px; align-items:center; z-index:8;
+  }
+  #mobile-btns button{
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:none; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.40);
+    -webkit-tap-highlight-color:transparent;
+  }
+  #mobile-add-btn{ font-size:28px; color:var(--space-2); background:var(--hold); }
+  #mobile-menu-btn, #mobile-pause-btn{
+    font-size:20px; color:var(--ink-soft); background:var(--panel);
+    border:1px solid var(--panel-line) !important;
+  }
+  #mobile-pause-btn{ width:48px; height:48px; font-size:16px; }
+  #mobile-menu-btn.active{ color:var(--hold); border-color:var(--hold) !important; }
+  #mobile-pause-btn.active{ color:var(--hold); border-color:var(--hold) !important; }
+
+  /* mobile action sheet */
+  #mobile-sheet{ display:none; }
+  body.phone #mobile-sheet{
+    position:fixed; bottom:94px; left:50%; transform:translateX(-50%);
+    z-index:8; display:flex; flex-direction:column; gap:2px;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:14px; padding:7px;
+    width:min(240px, calc(100vw - 40px));
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  body.phone #mobile-sheet[hidden]{ display:none; }
+  #mobile-sheet button{
+    all:unset; box-sizing:border-box; width:100%; cursor:pointer;
+    font:600 14px/1 ui-sans-serif,system-ui,sans-serif; letter-spacing:.04em;
+    color:var(--ink-soft); padding:13px 14px; border-radius:9px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #mobile-sheet button:active{ background:rgba(255,255,255,.10); color:var(--ink); }
+  #mobile-sheet button.on{ color:var(--hold); }
+  #mobile-sheet .sheet-sep{ height:1px; background:var(--panel-line); margin:4px 6px; }
+  #mobile-sheet .sheet-hint{
+    font:400 11px/1.45 ui-sans-serif,system-ui,sans-serif;
+    color:var(--muted); padding:6px 10px 2px;
+  }
+
+  /* roomier context-menu rows on touch */
+  body.phone #context-menu{ min-width:min(260px, calc(100vw - 24px)); }
+  body.phone #context-menu button{ font-size:14px; padding:13px 14px; }
+
+  /* popups anchored to top so the keyboard opening below doesn't shift them */
+  #add-modal{ align-items: flex-start; padding-top: 48px; }
+  body.phone .modal-overlay{ align-items: flex-start; padding-top: 40px; }
+  body.phone .modal-overlay .card{ max-height: 58vh; overflow-y: auto; }
+
+  /* prevent page scroll/bounce when modal is open on mobile */
+  body.modal-open{ overflow:hidden; position:fixed; width:100%; }
+
+  @media (prefers-reduced-motion: reduce){
+    .bubble{ transition:none; }
+  }
+</style>
+</head>
+<body>
+  <div id="sky">
+    <div id="divider-h" hidden></div>
+    <div id="divider-v" hidden></div>
+    <div id="divider-v2" hidden></div>
+    <div id="section-titles"></div>
+    <svg id="links">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="context-stroke" />
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div id="left-stack">
+  <div id="panel">
+    <label class="sl">Fade time<span id="fade-val">35s</span><input id="fade" type="range" min="8" max="160" step="1" value="35" /></label>
+    <label class="sl">Bubble<span id="bub-val">100%</span><input id="bub" type="range" min="20" max="200" step="5" value="100" /></label>
+    <label class="sl">Font<span id="font-val">100%</span><input id="font" type="range" min="10" max="500" step="5" value="100" /></label>
+    <div class="io-row desktop-only">
+      <button id="pause-toggle" class="chip">Pause Time</button>
+      <button id="divider-btn" class="chip">Dividers</button>
+    </div>
+    <div class="io-row desktop-only">
+      <button id="save-btn" class="chip">Save</button>
+      <button id="load-btn" class="chip">Load</button>
+    </div>
+    <div class="io-row desktop-only">
+      <button id="palette-btn" class="chip">Palette &rarr;</button>
+      <button id="shed-btn" class="chip">Shed</button>
+    </div>
+    <input type="file" id="load-file" accept="application/json" hidden />
+  </div>
+  <button id="forget-toggle">...</button>
+  </div>
+  <div id="palette-picker" hidden></div>
+  <div id="banner"></div>
+  <div id="lightbox" hidden><img id="lightbox-img" alt="" /></div>
+
+  <div id="context-menu" hidden>
+    <div id="ctx-preview"></div>
+    <button data-action="branch">Branch</button>
+    <button data-action="arrow">Arrow →</button>
+    <button data-action="edit">Edit</button>
+    <button data-action="pin">Pin</button>
+    <button data-action="highlight">Highlight</button>
+    <button data-action="color">New Color</button>
+    <button data-action="font-up">Increase Font Size</button>
+    <button data-action="font-down">Decrease Font Size</button>
+    <button data-action="size-down">Decrease Bubble Size</button>
+    <button data-action="copy">Copy Text</button>
+    <button data-action="break">Break connections</button>
+    <button data-action="delete">Delete</button>
+  </div>
+
+  <aside id="drawer">
+    <button id="drawer-close" aria-label="Close">&times;</button>
+    <h2>Past Bubbles</h2>
+    <input id="forgotten-search" type="search" placeholder="Search…" autocomplete="off" />
+    <div id="forgotten-list"><div class="empty">Nothing forgotten yet.</div></div>
+  </aside>
+
+  <div id="composer" class="desktop-only">
+    <textarea id="input" rows="1" placeholder="What's on your mind?"></textarea>
+    <div class="hint">
+      <span><kbd>Enter</kbd> let it go</span>
+      <span><kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span>
+      <span class="desktop-only">shake to grow · right-click shake to shrink · double-click to hold · right-click for more</span>
+    </div>
+  </div>
+
+  <div id="mobile-sheet" hidden>
+    <div class="sheet-hint">
+      Tap a thought to branch · hold for its menu · hold then slide to move it alone ·
+      pinch a thought to resize · drag or pinch empty space to pan &amp; zoom
+    </div>
+    <div class="sheet-sep"></div>
+    <button id="mobile-divider-btn">Dividers · Off</button>
+    <button id="mobile-palette-btn">Palette</button>
+    <div class="sheet-sep"></div>
+    <button id="mobile-png-btn">Save image (PNG)</button>
+    <button id="mobile-save-btn">Save file (JSON)</button>
+    <button id="mobile-load-btn">Load file</button>
+    <div class="sheet-sep"></div>
+    <button id="mobile-past-btn">Past bubbles</button>
+    <button id="mobile-shed-btn">Shed unpinned</button>
+  </div>
+
+  <div id="mobile-btns" class="phone-only-flex">
+    <button id="mobile-menu-btn" aria-label="Menu">&#9776;</button>
+    <button id="mobile-pause-btn" aria-label="Pause time">&#10074;&#10074;</button>
+    <button id="mobile-add-btn" aria-label="Add a thought">+</button>
+  </div>
+
+  <div id="edit-modal" class="modal-overlay" hidden>
+    <div class="card">
+      <h3>Edit thought</h3>
+      <textarea id="edit-input" rows="3"></textarea>
+      <div class="mini">Enter to save · Shift+Enter for a new line · Esc to cancel</div>
+      <div class="row">
+        <button id="edit-cancel" class="ghost-btn">Cancel</button>
+        <button id="edit-ok" class="go-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="branch-modal" class="modal-overlay" hidden>
+    <div class="card">
+      <h3>Branch a new thought</h3>
+      <textarea id="branch-input" rows="2" placeholder="What grows from this?"></textarea>
+      <div class="mini">Enter to branch · Shift+Enter for a new line · Esc to cancel</div>
+      <div class="row">
+        <button id="branch-cancel" class="ghost-btn">Cancel</button>
+        <button id="branch-ok" class="go-btn">Branch</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="add-modal" class="modal-overlay" hidden>
+    <div class="card">
+      <h3>New thought</h3>
+      <textarea id="add-input" rows="3" placeholder="What's on your mind?"></textarea>
+      <div id="add-img-preview" hidden></div>
+      <div class="mini">Enter to let it go · Shift+Enter for a new line · Esc to cancel</div>
+      <div class="row" style="justify-content:space-between;">
+        <button id="add-paste-img" class="ghost-btn desktop-only">Paste Image</button>
+        <div class="row" style="gap:10px;">
+        <button id="add-cancel" class="ghost-btn">Cancel</button>
+        <button id="add-ok" class="go-btn">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ── tuning knobs ────────────────────────────────────────────────
+  const SHRINK_SECONDS = 35;    // ◀ how long a thought takes to fade away. Lower = faster.
+  const FONT_SCALE     = 0.75;  // ◀ font-to-bubble ratio. Lower = smaller text inside bubble.
+  const GONE_AT       = 8;      // diameter (px) at which a thought is forgotten
+  const CENTER_PULL   = 0.16;   // gravity strength toward the middle (gentle)
+  const DAMP          = 0.21;   // velocity retained per second (lower = calmer)
+  const WANDER        = 101;    // ambient drift so thoughts keep floating
+  const GAP           = 8;      // breathing room between thoughts
+  const MAX_SIZE      = 320;    // biggest a thought can get by shaking
+  const CARD_RATIO    = 5 / 3;  // index card width:height (landscape)
+  const PUSH          = 1.2;    // collision push strength (reduced from 2.2)
+  const VMAX          = 400;    // hard velocity cap in any direction, any circumstance
+  const SHAKE_SPEED   = 700;    // px/s a drag must exceed to count as shaking
+  const SHAKE_WINDOW  = 600;    // ms window for counting direction reversals
+  const SHAKE_FLIPS   = 3;      // reversals needed to register one shake
+  const PAUSED_SHAKE_MULT = 2;  // paused mode requires stronger shake input
+  const GROW_STEP     = 0.18;   // fraction a thought grows per shake
+  const reduceMotion  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ─────────────────────────────────────────────────────────────────
+
+  // shrink speed is live-adjustable from the on-screen slider
+  let shrinkSeconds = SHRINK_SECONDS;
+
+  // ── phone detection: simplify UI on touch-primary small screens ──
+  const isPhone =
+    window.matchMedia('(pointer: coarse) and (hover: none)').matches &&
+    Math.min(window.innerWidth, window.innerHeight) < 700;
+  if (isPhone) document.body.classList.add('phone');
+
+  let fontScale   = isPhone ? FONT_SCALE : 1.0;   // desktop: 1.0 = new 100% baseline
+  let bubbleScale = isPhone ? 0.75 : 1.0;          // desktop: 1.0 = new 100% baseline
+
+  const sky   = document.getElementById('sky');
+  const input = document.getElementById('input');
+  const drawer = document.getElementById('drawer');
+  const toggle = document.getElementById('forget-toggle');
+  const countEl = toggle.querySelector('.count');
+  const listEl = document.getElementById('forgotten-list');
+
+  let W = 0, H = 0, cx = 0, cy = 0;
+  function measure(){ W = innerWidth; H = innerHeight; cx = W/2; cy = H/2; }
+  measure(); addEventListener('resize', () => { if (!suppressResize) measure(); });
+
+  // ── global pause: freezes shrinking, drifting, and connections in place ──
+  let paused = !isPhone;   // desktop: paused by default; mobile: running
+  const PAUSE_RESOLVE_MS = 3000; // how long overlapping bubbles keep un-stacking after pausing
+  let pauseResolveUntil = paused ? performance.now() + PAUSE_RESOLVE_MS : 0;
+  const pauseBtn = document.getElementById('pause-toggle');
+  const mobPauseBtn = document.getElementById('mobile-pause-btn');
+  if (pauseBtn) pauseBtn.textContent = paused ? 'Resume Time' : 'Pause Time';
+  function setPaused(on){
+    paused = on;
+    if (on) pauseResolveUntil = performance.now() + PAUSE_RESOLVE_MS;
+    if (pauseBtn) pauseBtn.textContent = on ? 'Resume Time' : 'Pause Time';
+    if (mobPauseBtn){
+      mobPauseBtn.innerHTML = on ? '&#9654;' : '&#10074;&#10074;';
+      mobPauseBtn.setAttribute('aria-label', on ? 'Resume time' : 'Pause time');
+      mobPauseBtn.classList.toggle('active', on);
+    }
+  }
+  if (pauseBtn) pauseBtn.addEventListener('click', () => setPaused(!paused));
+  if (mobPauseBtn) mobPauseBtn.addEventListener('click', () => setPaused(!paused));
+
+  let nextId = 1;
+  const bubbles = [];      // live thoughts
+  const forgotten = [];    // {id, text, baseSize, hue}
+
+  const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+  const rand  = (a,b) => a + Math.random()*(b-a);
+
+  // ── color palettes ────────────────────────────────────────────────
+  const PALETTES = [
+    ['264653','287271','2a9d8f','8ab17d','e9c46a','efb366','f4a261','ee8959','e76f51','e97c61'], // Ocean
+    ['ff595e','ff924c','ffca3a','c5ca30','8ac926','36949d','1982c4','4267ac','565aa0','6a4c93'], // Pop
+    ['b7094c','a01a58','892b64','723c70','5c4d7d','455e89','2e6f95','1780a1','0091ad'],         // Dusk
+    ['fec5bb','fcd5ce','fae1dd','f8edeb','e8e8e4','d8e2dc','ece4db','ffe5d9','ffd7ba','fec89a'], // Blush
+    ['ffc800','f6992d','ed6a5a','a75a5a','60495a','4c7680','38a3a5','7dba60','c2d11b'],         // Sunset
+    ['7890a0','8888a8','7898a0','8890a8','9090a8','88a0a0','7888a8','8090b0','9898a8','78a0a0'], // Quiet
+    ['7032f7','0f0842','b8b5ff','e5e5f9','4920c9','290085','758fff','420de5'],                   // Countable1
+    ['4038f7','9edb00','fc8c08','f0213d','feda12','00b869','1afad4','08d1fa','6926f5','ff33b0'], // Countable2
+    // grayscale — placeholder, replaced below based on color scheme
+    [],
+  ];
+  const PALETTE_NAMES = ['Ocean','Pop','Dusk','Blush','Sunset','Quiet','Countable1','Countable2','Grayscale'];
+
+  // theme-aware grayscale: close to the background so it blends and draws less attention
+  { const isDark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+    PALETTES[8] = isDark
+      ? ['383838','3e3e42','444448','4a4a4e','505054','363638','404044','464648','3c3c40','4e4e52']
+      : ['c4c4c8','c8c8cc','ccccd0','c0c0c4','c6c6ca','ceccce','c2c2c6','cacccc','d0d0d4','c4c4c2'];
+  }
+
+  // randomize starting palette every session
+  let currentPaletteIdx = Math.floor(rand(0, PALETTES.length));
+
+  function palette(){ return PALETTES[currentPaletteIdx]; }
+
+  // draw-without-replacement: shuffle all palette indices, pop one at a time
+  let colorBag = [];
+  function nextColorIdx(){
+    if (colorBag.length === 0){
+      colorBag = [...Array(palette().length).keys()];
+      for (let i = colorBag.length - 1; i > 0; i--){
+        const j = Math.floor(rand(0, i + 1));
+        [colorBag[i], colorBag[j]] = [colorBag[j], colorBag[i]];
+      }
+    }
+    return colorBag.pop();
+  }
+
+  function bubbleColor(hue){
+    return '#' + palette()[Math.abs(Math.round(hue)) % palette().length];
+  }
+
+  function bubbleColor(hue){
+    return '#' + palette()[Math.abs(Math.round(hue)) % palette().length];
+  }
+
+  // WCAG-based: pick white or black for best contrast against a hex color
+  function textColor(hex){
+    const r = parseInt(hex.slice(0,2),16) / 255;
+    const g = parseInt(hex.slice(2,4),16) / 255;
+    const b = parseInt(hex.slice(4,6),16) / 255;
+    const toLinear = c => c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+    const L = 0.2126*toLinear(r) + 0.7152*toLinear(g) + 0.0722*toLinear(b);
+    return L > 0.179 ? '#000000' : '#ffffff';
+  }
+
+  function applyColor(b){
+    const hex = palette()[Math.abs(Math.round(b.hue)) % palette().length];
+    b.el.style.background = '#' + hex;
+    b.el.style.color = textColor(hex);
+  }
+
+  function applyPaletteToAll(){
+    for (const b of bubbles) applyColor(b);
+    // also update forgotten list dots
+    renderForgotten();
+  }
+
+  function sizeForText(text){
+    const n = text.replace(/\s+/g,' ').trim().length;
+    const mobileScale = isPhone ? 0.5 : 0.525;  // desktop 0.525 = old 0.75 × 0.70; rebased to 100%
+    return clamp((90 + Math.sqrt(n)*16) * bubbleScale * mobileScale, 20, 400);
+  }
+  // "natural" font size at 1x scale — respects anti-linebreak rule (longest word fits)
+  function naturalFontSize(b, size){
+    const n = Math.max(b.text.length, 4);
+    const ratio = isPhone ? 0.85 : 0.6375;
+    const byLen  = (size * ratio) / Math.pow(n, 0.4);
+    const textW  = size * CARD_RATIO * (b.textWidthPct || 72) / 100;
+    const maxW   = Math.max(...b.text.split(/\s+/).map(w => w.length), 1);
+    const byWord = textW / (maxW * 0.58);
+    return Math.min(byLen, byWord);
+  }
+
+  // creation-time / layout font (baseSize-driven) — natural cap applies, THEN user scale multiplies freely
+  function fontForBubble(b){
+    const natural = naturalFontSize(b, b.baseSize);
+    return clamp(Math.round(natural * fontScale * (b.fontMult || 1)), 3, 300);
+  }
+
+  // visual (apparent, size-driven) font — same freedom to overflow once scaled
+  function visualFontSize(b){
+    const natural = naturalFontSize(b, b.size);
+    return clamp(Math.round(natural * fontScale * (b.fontMult || 1)), 3, 300);
+  }
+
+  // find a non-overlapping spawn position within the current divider section
+  function findSpawnPos(baseSize){
+    const sc = spawnCenter();
+    const r = baseSize / 2;
+    let xMin = r, xMax = W - r, yMin = r, yMax = H - r;
+    if (dividerState === 1){ if (sc.x < cx) xMax = cx - r; else xMin = cx + r; }
+    if (dividerState === 2){ if (sc.x < cx) xMax = cx - r; else xMin = cx + r; if (sc.y < cy) yMax = cy - r; else yMin = cy + r; }
+    if (dividerState === 3){
+      const d1x = W/3, d2x = 2*W/3;
+      if      (sc.x < d1x){ xMax = d1x - r; }
+      else if (sc.x < d2x){ xMin = d1x + r; xMax = d2x - r; }
+      else                 { xMin = d2x + r; }
+      if (sc.y < cy) yMax = cy - r; else yMin = cy + r;
+    }
+
+    // try in expanding rings from the section center — prefer central placement
+    for (let radius = 40; radius <= 220; radius += 30){
+      const angle = rand(0, Math.PI * 2);
+      const d = rand(0, radius);
+      const x = clamp(sc.x + Math.cos(angle) * d, xMin, xMax);
+      const y = clamp(sc.y + Math.sin(angle) * d, yMin, yMax);
+      let fits = true;
+      for (const b of bubbles){
+        const dx = b.x - x, dy = b.y - y;
+        const d = Math.hypot(dx, dy) || 0.01;
+        const nx = dx/d, ny = dy/d;
+        const rb = Math.min(nx ? (b.size * CARD_RATIO / 2) / Math.abs(nx) : Infinity, ny ? (b.size / 2) / Math.abs(ny) : Infinity);
+        const rn = Math.min(nx ? (baseSize * CARD_RATIO / 2) / Math.abs(nx) : Infinity, ny ? (baseSize / 2) / Math.abs(ny) : Infinity);
+        if (d < rb + rn + GAP){ fits = false; break; }
+      }
+      if (fits) return {x, y};
+    }
+    return {x: sc.x + rand(-40, 40), y: sc.y + rand(-40, 40)};
+  }
+
+  function makeBubble(text, opts = {}){
+    const baseSize = opts.baseSize || sizeForText(text);
+    const hue = (opts.hue != null) ? opts.hue : nextColorIdx();
+    const hex = palette()[Math.abs(Math.round(hue)) % palette().length];
+
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.style.background = '#' + hex;
+    el.style.color = textColor(hex);
+    el.style.boxShadow = `0 8px 24px rgba(0,0,0,.28)`;
+
+    const txt = document.createElement('div');
+    txt.className = 'txt';
+    txt.textContent = text;
+    el.appendChild(txt);
+
+    let img = null;
+    if (opts.image){
+      img = document.createElement('img');
+      img.className = 'img';
+      img.draggable = false;
+      img.src = opts.image;
+      el.appendChild(img);
+      txt.style.display = 'none';
+    }
+
+    const pin = document.createElement('div');
+    pin.className = 'pin';
+    pin.textContent = '📌';
+    el.appendChild(pin);
+
+    sky.appendChild(el);
+
+    const sp = (opts.x == null) ? findSpawnPos(baseSize) : {x: opts.x, y: opts.y};
+    const b = {
+      id: nextId++, el, txt, text, hue, image: opts.image || null, imgEl: img,
+      baseSize, size: baseSize, grewIn: true,
+      x: sp.x, y: sp.y,
+      vx: 0, vy: 0,
+      frozen: !!opts.held,
+      _dragging: false, fontMult: 1, age: 0, textWidthPct: 72
+    };
+    // fixed layout dimensions: card is CARD_RATIO × 1 (width × height)
+    el.style.width  = Math.round(baseSize * CARD_RATIO) + 'px';
+    el.style.height = baseSize + 'px';
+    el.style.transformOrigin = '0 0';
+    txt.style.width = '72%';
+    if (!img) txt.style.fontSize = fontForBubble(b) + 'px';  // set once; only changes when fontScale changes
+    if (opts.x == null) lastActivityPos = {x: b.x, y: b.y};
+    if (opts.held) el.classList.add('held');
+
+    el.addEventListener('pointerdown', e => startDrag(e, b));
+    // on phone a short tap branches, so pinning lives in the long-press menu instead
+    if (!isPhone) el.addEventListener('dblclick', () => setHeld(b, !b.frozen));
+    el.addEventListener('pointerenter', () => { hoveredBubble = b; });
+    el.addEventListener('pointerleave', () => { if (hoveredBubble === b) hoveredBubble = null; });
+
+    bubbles.push(b);
+    if (paused) pauseResolveUntil = performance.now() + PAUSE_RESOLVE_MS;
+    return b;
+  }
+
+  function setHeld(b, held){
+    b.frozen = held;
+    b.el.classList.toggle('held', held);
+  }
+
+  function setHighlight(b, on){
+    b.highlighted = on;
+    b.el.classList.toggle('highlight', on);
+  }
+
+  // ── mobile "add a thought" popup — avoids a keyboard-anchored input bar ──
+  const addModal = document.getElementById('add-modal');
+  const addInput = document.getElementById('add-input');
+  const addBtn = document.getElementById('mobile-add-btn');
+
+  // ── mobile action sheet ──────────────────────────────────────────
+  const mobSheet   = document.getElementById('mobile-sheet');
+  const mobMenuBtn = document.getElementById('mobile-menu-btn');
+  const mobSaveBtn = document.getElementById('mobile-save-btn');
+  const mobPngBtn  = document.getElementById('mobile-png-btn');
+  const mobLoadBtn = document.getElementById('mobile-load-btn');
+  const mobPastBtn = document.getElementById('mobile-past-btn');
+  const mobShedBtn = document.getElementById('mobile-shed-btn');
+
+  function sheetOpen(){ return mobSheet && !mobSheet.hidden; }
+  function closeSheet(){
+    if (!mobSheet) return;
+    mobSheet.hidden = true;
+    if (mobMenuBtn) mobMenuBtn.classList.remove('active');
+  }
+  if (mobMenuBtn) mobMenuBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (sheetOpen()){ closeSheet(); return; }
+    palettePicker.hidden = true;
+    mobSheet.hidden = false;
+    mobMenuBtn.classList.add('active');
+  });
+
+  if (mobSaveBtn) mobSaveBtn.addEventListener('click', () => {
+    closeSheet();
+    try {
+      const blob = new Blob([JSON.stringify(serializeState(), null, 2)], {type:'application/json'});
+      saveBlob(blob, `thought-bubbles-${timestamp()}.json`);
+    } catch(err){ console.error(err); }
+  });
+  if (mobPngBtn) mobPngBtn.addEventListener('click', () => {
+    closeSheet();
+    // let the sheet actually disappear before we snapshot the canvas state
+    requestAnimationFrame(() => capturePNG(timestamp()));
+  });
+  if (mobLoadBtn) mobLoadBtn.addEventListener('click', () => { closeSheet(); loadFile.click(); });
+  if (mobPastBtn) mobPastBtn.addEventListener('click', () => { closeSheet(); drawer.classList.toggle('open'); });
+  if (mobShedBtn) mobShedBtn.addEventListener('click', () => { closeSheet(); shed(); });
+
+  const mobPaletteBtn = document.getElementById('mobile-palette-btn');
+  if (mobPaletteBtn) mobPaletteBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!palettePicker.hidden){ palettePicker.hidden = true; return; }
+    buildPalettePicker();
+    const rect = mobSheet.getBoundingClientRect();
+    palettePicker.style.left = '50%';
+    palettePicker.style.transform = 'translateX(-50%)';
+    palettePicker.hidden = false;
+    requestAnimationFrame(() => {
+      const r = palettePicker.getBoundingClientRect();
+      const desiredBottom = window.innerHeight - rect.top + 8;
+      const maxBottom = window.innerHeight - r.height - 8;
+      const bottom = Math.max(8, Math.min(desiredBottom, maxBottom));
+      palettePicker.style.bottom = bottom + 'px';
+      palettePicker.style.top = 'auto';
+    });
+    closeSheet();
+  });
+
+  let pendingClickPos = null;
+  let pendingImage = null;
+  const addImgPreview = document.getElementById('add-img-preview');
+  const addPasteImgBtn = document.getElementById('add-paste-img');
+
+  function setPendingImage(dataUrl){
+    pendingImage = dataUrl || null;
+    addImgPreview.innerHTML = '';
+    if (!pendingImage){ addImgPreview.hidden = true; return; }
+    const img = document.createElement('img');
+    img.src = pendingImage;
+    const rm = document.createElement('button');
+    rm.textContent = '×';
+    rm.title = 'Remove image';
+    rm.addEventListener('click', e => { e.stopPropagation(); setPendingImage(null); });
+    addImgPreview.append(img, rm);
+    addImgPreview.hidden = false;
+  }
+
+  async function pasteImageFromClipboard(){
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items){
+        const type = item.types.find(t => t.startsWith('image/'));
+        if (!type) continue;
+        const blob = await item.getType(type);
+        const reader = new FileReader();
+        reader.onload = () => setPendingImage(reader.result);
+        reader.readAsDataURL(blob);
+        return;
+      }
+      flashLabel(addPasteImgBtn, 'No image found', 1200);
+    } catch(err){
+      console.error(err);
+      flashLabel(addPasteImgBtn, 'Clipboard blocked', 1400);
+    }
+  }
+  if (addPasteImgBtn) addPasteImgBtn.addEventListener('click', pasteImageFromClipboard);
+
+  function openAddModal(pos){
+    closeSheet(); palettePicker.hidden = true;
+    pendingClickPos = pos || null;
+    addInput.value = '';
+    setPendingImage(null);
+    addModal.hidden = false;
+    if (isPhone) document.body.classList.add('modal-open');
+    requestAnimationFrame(() => addInput.focus());
+  }
+  function closeAddModal(){
+    addModal.hidden = true; pendingClickPos = null;
+    setPendingImage(null);
+    addInput.blur();
+    if (isPhone) document.body.classList.remove('modal-open');
+  }
+  function commitAdd(){
+    const text = addInput.value.replace(/\s+$/,'');
+    const pos = pendingClickPos;
+    const image = pendingImage;
+    closeAddModal();
+    if (!text.trim() && !image) return;
+    const opts = pos ? {x: pos.x, y: pos.y} : {};
+    if (image) opts.image = image;
+    if (isPhone){
+      // keyboard is closing — remeasure viewport, then place the thought
+      requestAnimationFrame(() => { measure(); makeBubble(text, opts); });
+    } else {
+      makeBubble(text, opts);
+      if (pos) requestAnimationFrame(() => input.focus());
+    }
+  }
+
+  addBtn.addEventListener('click', () => openAddModal());
+  document.getElementById('add-ok').addEventListener('click', commitAdd);
+  document.getElementById('add-cancel').addEventListener('click', closeAddModal);
+  addModal.addEventListener('pointerdown', e => { if (e.target === addModal) closeAddModal(); });
+  addInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); commitAdd(); }
+    else if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeAddModal(); }
+  });
+
+  // ── lightbox: click a bubble's image to see it full-size ─────────
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  function openLightbox(src){ lightboxImg.src = src; lightbox.hidden = false; }
+  function closeLightbox(){ lightbox.hidden = true; lightboxImg.src = ''; }
+  lightbox.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
+
+  // ── spawn zone tracking — new bubbles land in the same section as last activity ──
+  let lastActivityPos = null;    // {x, y} of last intentional placement
+
+  function spawnCenter(){
+    if (dividerState === 0) return {x: cx, y: cy};
+    if (dividerState === 1) return {x: cx / 2, y: cy};
+    if (dividerState === 2) return {x: cx / 2, y: cy / 2};
+    const d1x = W/3, d2x = 2*W/3;
+    return {x: W / 6, y: cy / 2};
+  }
+
+  // ── dividers ─────────────────────────────────────────────────────
+  // 0=none, 1=| (vertical), 2=+ (cross), 3=++ (2 verticals + horizontal = 6 sections)
+  let dividerState = 0;
+  const divH  = document.getElementById('divider-h');
+  const divV  = document.getElementById('divider-v');
+  const divV2 = document.getElementById('divider-v2');
+  const divBtn    = document.getElementById('divider-btn');
+  const mobDivBtn = document.getElementById('mobile-divider-btn');
+  const DIVIDER_ICONS = ['Dividers', '| Divider', '+ Dividers', '++ Dividers'];
+
+  // center of the section a bubble currently belongs to
+  function sectionGravity(b){
+    if (dividerState === 0) return {x: cx, y: cy};
+    if (dividerState === 1) return {x: b.x < cx ? cx/2 : cx*1.5, y: cy};
+    if (dividerState === 2) return {x: b.x < cx ? cx/2 : cx*1.5, y: b.y < cy ? cy/2 : cy*1.5};
+    // state 3: 2 verticals at W/3 and 2W/3, horizontal at cy
+    const d1x = W/3, d2x = 2*W/3;
+    const scx = b.x < d1x ? W/6 : b.x < d2x ? cx : 5*W/6;
+    return {x: scx, y: b.y < cy ? cy/2 : cy*1.5};
+  }
+
+  function setDividerState(s){
+    const prev = dividerState;
+    dividerState = s;
+
+    // visual lines — on mobile, state 1 is horizontal (---) not vertical
+    if (isPhone){
+      divH.hidden  = s < 1;
+      divV.hidden  = true;
+      divV2.hidden = true;
+    } else {
+      divV.hidden  = s < 1;
+      divH.hidden  = s < 2;
+      divV2.hidden = s < 3;
+      divV.style.left = s === 3 ? '33.33%' : '';
+    }
+
+    [divBtn, mobDivBtn].forEach(btn => {
+      if (!btn) return;
+      btn.classList.toggle('on', s > 0);
+      btn.classList.toggle('active', s > 0);
+    });
+    divBtn    && (divBtn.textContent    = DIVIDER_ICONS[s]);
+    mobDivBtn && (mobDivBtn.textContent = 'Dividers · ' + (s > 0 ? 'On' : 'Off'));
+
+    // bubble migration at each transition
+    if (s === 1 && prev === 0){
+      // all bubbles → left half
+      for (const b of bubbles){
+        const r = b.size * CARD_RATIO / 2;
+        if (b.x + r > cx){ b.x = Math.max(r, Math.min(2*cx - b.x, cx - r)); b.vx = -Math.abs(b.vx)*0.3; }
+      }
+    }
+    if (s === 2 && prev === 1){
+      // all bubbles → top half (left already done)
+      for (const b of bubbles){
+        const r = b.size / 2;
+        if (b.y + r > cy){ b.y = Math.max(r, Math.min(2*cy - b.y, cy - r)); b.vy = -Math.abs(b.vy)*0.3; }
+      }
+    }
+    if (s === 3 && prev === 2){
+      // nudge any bubble straddling the new dividers at W/3 or 2W/3
+      const d1x = W/3, d2x = 2*W/3;
+      for (const b of bubbles){
+        const rw = b.size * CARD_RATIO / 2;
+        if (b.x - rw < d1x && b.x + rw > d1x){ b.x = b.x < d1x ? d1x - rw - 2 : d1x + rw + 2; b.vx = 0; }
+        if (b.x - rw < d2x && b.x + rw > d2x){ b.x = b.x < d2x ? d2x - rw - 2 : d2x + rw + 2; b.vx = 0; }
+      }
+    }
+
+    renderSectionTitles();
+  }
+  divBtn    && divBtn.addEventListener('click', () => setDividerState((dividerState + 1) % 4));
+  mobDivBtn && mobDivBtn.addEventListener('click', () => { setDividerState(dividerState === 0 ? 1 : 0); closeSheet(); });
+
+  // ── section titles ───────────────────────────────────────────────
+  // Titles are keyed by "<dividerState>:<index>" so each layout keeps its own set.
+  const sectionTitles = {};                      // { "2:0": "Now", ... }
+  const titlesLayer = document.getElementById('section-titles');
+  const SECTION_COUNTS = [1, 2, 4, 6];
+
+  // geometry of every section in the current layout, in screen coordinates
+  function sectionRects(){
+    const s = dividerState;
+    if (s === 0) return [{x: 0, y: 0, w: W, h: H}];
+    if (isPhone && s >= 1) return [{x: 0, y: 0, w: W, h: cy}, {x: 0, y: cy, w: W, h: cy}];
+    if (s === 1) return [{x: 0, y: 0, w: cx, h: H}, {x: cx, y: 0, w: cx, h: H}];
+    if (s === 2) return [
+      {x: 0,  y: 0,  w: cx, h: cy}, {x: cx, y: 0,  w: cx, h: cy},
+      {x: 0,  y: cy, w: cx, h: cy}, {x: cx, y: cy, w: cx, h: cy}
+    ];
+    const tw = W / 3;
+    return [
+      {x: 0,      y: 0,  w: tw, h: cy}, {x: tw,   y: 0,  w: tw, h: cy}, {x: 2*tw, y: 0,  w: tw, h: cy},
+      {x: 0,      y: cy, w: tw, h: cy}, {x: tw,   y: cy, w: tw, h: cy}, {x: 2*tw, y: cy, w: tw, h: cy}
+    ];
+  }
+
+  // Stable division numbers, shared across layouts:
+  //   1 div  : [1]
+  //   2 divs : left 1, right 2
+  //   4 divs : TL 1, TR 2, BL 3, BR 4
+  //   6 divs : TL 1, TM 2, TR 5 / BL 3, BM 4, BR 6
+  // sectionRects() returns rows top-to-bottom, left-to-right, so map index -> slot.
+  const SLOT_MAPS = {
+    0: [1],
+    1: [1, 2],
+    2: [1, 2, 3, 4],
+    3: [1, 2, 5, 3, 4, 6]
+  };
+  function slotFor(i){
+    if (isPhone && dividerState >= 1) return [1, 2][i] || (i + 1);
+    const m = SLOT_MAPS[dividerState] || [];
+    return m[i] || (i + 1);
+  }
+  const titleKey = i => String(slotFor(i));
+
+  let titleEditing = false;
+
+  function renderSectionTitles(){
+    // never rebuild out from under an in-progress edit — on mobile the software
+    // keyboard fires a resize, and re-rendering would destroy the focused node
+    if (titleEditing) return;
+    titlesLayer.innerHTML = '';
+    const rects = sectionRects();
+    rects.forEach((r, i) => {
+      const key = titleKey(i);
+      const el = document.createElement('div');
+      const text = sectionTitles[key] || '';
+      el.className = 'sec-title' + (text ? '' : ' empty-title');
+      el.textContent = text || 'Untitled';
+      el.dataset.key = key;
+      el.style.left = (r.x + r.w / 2) + 'px';
+      el.style.top  = (r.y + 14) + 'px';
+      el.title = 'Click to rename this section';
+      el.addEventListener('pointerdown', e => e.stopPropagation());
+      el.addEventListener('click', e => { e.stopPropagation(); startTitleEdit(el); });
+      // touch: focus straight from touchend so iOS treats it as a user gesture
+      el.addEventListener('touchend', e => {
+        if (el.classList.contains('editing')) return;
+        e.preventDefault(); e.stopPropagation();
+        startTitleEdit(el);
+      }, {passive: false});
+      titlesLayer.appendChild(el);
+    });
+  }
+
+  function startTitleEdit(el){
+    if (el.classList.contains('editing')) return;
+    const key = el.dataset.key;
+    titleEditing = true;
+    suppressResize = true;   // keyboard-driven viewport resizes must not disturb the edit
+    el.classList.add('editing');
+    el.classList.remove('empty-title');
+    el.textContent = sectionTitles[key] || '';
+    el.contentEditable = 'true';
+    el.focus();
+    // put the caret at the end
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+
+    let cancelled = false, finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      el.removeEventListener('keydown', onKey);
+      el.removeEventListener('blur', finish);
+      el.contentEditable = 'false';
+      el.classList.remove('editing');
+      titleEditing = false;
+      suppressResize = false;
+      if (!cancelled){
+        const val = el.textContent.replace(/\s+/g, ' ').trim().slice(0, 60);
+        if (val) sectionTitles[key] = val; else delete sectionTitles[key];
+      }
+      measure();
+      renderSectionTitles();
+    };
+    const onKey = e => {
+      e.stopPropagation();               // keep canvas shortcuts from firing while typing
+      if (e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      else if (e.key === 'Escape'){ e.preventDefault(); cancelled = true; el.blur(); }
+    };
+    el.addEventListener('keydown', onKey);
+    el.addEventListener('blur', finish);
+  }
+
+  renderSectionTitles();
+  addEventListener('resize', () => { if (!suppressResize) renderSectionTitles(); });
+
+  // ── dragging + shake detection ──────────────────────────────────
+  sky.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ── pan: space + drag moves all bubbles ──────────────────────────
+  let spaceHeld = false, panDrag = null, hoveredBubble = null;
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT'){
+      e.preventDefault();
+      spaceHeld = true;
+      sky.style.cursor = 'grab';
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code === 'Space'){ spaceHeld = false; sky.style.cursor = ''; }
+  });
+
+  let drag = null;
+
+  // ── raw pointer tracking (touch gestures need concurrent positions) ──
+  const ptrs = new Map();   // pointerId -> {x, y}
+  addEventListener('pointerdown', e => ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY}), true);
+  addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (p){ p.x = e.clientX; p.y = e.clientY; } }, true);
+  addEventListener('pointerup',     e => ptrs.delete(e.pointerId), true);
+  addEventListener('pointercancel', e => ptrs.delete(e.pointerId), true);
+
+  let bubblePinch = null;   // two fingers on one bubble → resize that bubble
+  let skyGesture  = null;   // one finger on empty space → pan; two → pan + zoom
+
+  // collect all bubbles in a branch cluster (traverses branchLinks graph)
+  function getBranchGroup(start){
+    const seen = new Set([start]); const stack = [start];
+    while (stack.length){
+      const cur = stack.pop();
+      for (const L of branchLinks){
+        if (L.a === cur && !seen.has(L.b)){ seen.add(L.b); stack.push(L.b); }
+        if (L.b === cur && !seen.has(L.a)){ seen.add(L.a); stack.push(L.a); }
+      }
+    }
+    return [...seen];
+  }
+
+  let longPressTimer = null;
+
+  function startDrag(e, b){
+    if (spaceHeld && !isPhone) return;   // let sky pan handler take over
+    if (arrowSource){ e.preventDefault(); completeArrow(b); return; }
+    if (!isPhone && mode === 'color'){ e.preventDefault(); recolor(b); return; }
+
+    // ── touch: a second finger on the same bubble pinches it larger/smaller ──
+    if (isPhone && drag && drag.b === b && !bubblePinch){
+      e.preventDefault();
+      if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+      closeContextMenu();
+      const p1 = ptrs.get(drag.pointerId) || {x: drag.lastX, y: drag.lastY};
+      bubblePinch = {
+        b, comp: drag.comp, id1: drag.pointerId, id2: e.pointerId,
+        d0: Math.hypot(e.clientX - p1.x, e.clientY - p1.y) || 1,
+        base0: b.baseSize, size0: b.size
+      };
+      drag = null;                       // the pinch owns both fingers now
+      bubblePinch.comp.forEach(n => { n._dragging = true; n.vx = 0; n.vy = 0; });
+      return;
+    }
+    // a third finger — or one landing mid canvas-gesture — changes nothing
+    if (isPhone && (drag || bubblePinch || skyGesture)) return;
+
+    e.preventDefault();
+    const rightClick = (e.button === 2);
+    const r = b.el.getBoundingClientRect();
+
+    // tapping a bubble while a menu is up only dismisses the menu
+    let menuDismiss = false;
+    if (isPhone && (!ctxMenu.hidden || !palettePicker.hidden || sheetOpen())){
+      menuDismiss = true;
+      closeContextMenu(); palettePicker.hidden = true; closeSheet();
+    }
+
+    if (isPhone && !menuDismiss){
+      const lx = e.clientX, ly = e.clientY;
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        if (!drag || drag.b !== b) return;
+        // long press detaches this bubble from its branch group: keep the drag
+        // alive so a continued slide moves this one card on its own
+        drag.longPressed = true;
+        drag.comp.forEach(n => { if (n !== b){ n._dragging = false; n.vx = 0; n.vy = 0; } });
+        drag.comp = [b];
+        b._dragging = true;
+        openContextMenu(b, lx, ly);
+        if (navigator.vibrate) try { navigator.vibrate(12); } catch(_){}
+      }, 450);
+    }
+
+    // ctrl/meta+drag: move only this bubble; plain drag: move whole branch group
+    const comp = (e.ctrlKey || e.metaKey) ? [b] : getBranchGroup(b);
+    comp.forEach(n => { n._dragging = true; n.vx = 0; n.vy = 0; });
+    drag = {
+      b, comp, rightClick, menuDismiss, pointerId: e.pointerId,
+      longPressed: false, soloMoved: false,
+      offX: e.clientX - (r.left + r.width/2),
+      offY: e.clientY - (r.top + r.height/2),
+      downX: e.clientX, downY: e.clientY, shook: false,
+      lastX: e.clientX, lastY: e.clientY, lastT: performance.now(),
+      lastCX: b.x, lastCY: b.y,
+      velX: 0, velY: 0,
+      signX: 0, signY: 0, flips: []
+    };
+    b.el.classList.add('dragging');
+    try { b.el.setPointerCapture(e.pointerId); } catch(_){}
+  }
+
+  // move every thought by the same screen delta
+  function panBy(dx, dy){ for (const b of bubbles){ b.x += dx; b.y += dy; } }
+
+  addEventListener('pointermove', e => {
+    if (panDrag){
+      const ddx = e.clientX - panDrag.lastX, ddy = e.clientY - panDrag.lastY;
+      panDrag.lastX = e.clientX; panDrag.lastY = e.clientY;
+      panBy(ddx, ddy);
+      return;
+    }
+
+    // ── two fingers on one bubble: resize just that bubble ──
+    if (bubblePinch){
+      const p1 = ptrs.get(bubblePinch.id1), p2 = ptrs.get(bubblePinch.id2);
+      if (p1 && p2){
+        const d = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+        const f = d / bubblePinch.d0;
+        const b = bubblePinch.b;
+        b.baseSize = clamp(bubblePinch.base0 * f, 20, 400);
+        b.size     = clamp(bubblePinch.size0 * f, GONE_AT + 1, 400);
+        b.grewIn = true; b.age = 0;
+        b.el.style.width  = Math.round(b.baseSize * CARD_RATIO) + 'px';
+        b.el.style.height = b.baseSize + 'px';
+        b.txt.style.fontSize = fontForBubble(b) + 'px';
+      }
+      return;
+    }
+
+    // ── fingers on empty space: pan (one) / pan + zoom (two) ──
+    if (skyGesture && skyGesture.ids.includes(e.pointerId)){
+      if (skyGesture.mode === 'pinch'){
+        const p1 = ptrs.get(skyGesture.ids[0]), p2 = ptrs.get(skyGesture.ids[1]);
+        if (p1 && p2){
+          const d  = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+          const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+          panBy(mx - skyGesture.lastMX, my - skyGesture.lastMY);
+          applyZoomAt(clamp(d / skyGesture.lastD, 0.5, 2), mx, my);
+          skyGesture.lastD = d; skyGesture.lastMX = mx; skyGesture.lastMY = my;
+        }
+        return;
+      }
+      if (skyGesture.mode === 'tap'){
+        if (Math.hypot(e.clientX - skyGesture.downX, e.clientY - skyGesture.downY) <= 8) return;
+        // crossed the threshold — start panning from where the finger went down,
+        // so nothing of the movement is swallowed
+        skyGesture.mode = 'pan';
+        skyGesture.lastX = skyGesture.downX; skyGesture.lastY = skyGesture.downY;
+      }
+      panBy(e.clientX - skyGesture.lastX, e.clientY - skyGesture.lastY);
+      skyGesture.lastX = e.clientX; skyGesture.lastY = e.clientY;
+      return;
+    }
+
+    if (longPressTimer && drag){
+      const moved = Math.hypot(e.clientX - drag.downX, e.clientY - drag.downY);
+      if (moved > 8){ clearTimeout(longPressTimer); longPressTimer = null; }
+    }
+    if (!drag) return;
+    // after a long press, the first real slide dismisses the menu and moves the
+    // single card — the menu getting out of the way is the "solo drag" cue
+    if (drag.longPressed && !drag.soloMoved &&
+        Math.hypot(e.clientX - drag.downX, e.clientY - drag.downY) > 8){
+      drag.soloMoved = true;
+      closeContextMenu();
+    }
+    const now = performance.now();
+    const dt = Math.max((now - drag.lastT) / 1000, 1/240);
+    const b = drag.b;
+
+    const nx = e.clientX - drag.offX;
+    const ny = e.clientY - drag.offY;
+    const mvx = nx - b.x, mvy = ny - b.y;
+
+    drag.velX = mvx / dt; drag.velY = mvy / dt;
+
+    // count direction reversals on each axis = a shake
+    const sx = Math.abs(mvx) > 2 ? Math.sign(mvx) : 0;
+    const sy = Math.abs(mvy) > 2 ? Math.sign(mvy) : 0;
+    if (sx && drag.signX && sx !== drag.signX) drag.flips.push(now);
+    if (sy && drag.signY && sy !== drag.signY) drag.flips.push(now);
+    if (sx) drag.signX = sx;
+    if (sy) drag.signY = sy;
+    drag.flips = drag.flips.filter(t => now - t < SHAKE_WINDOW);
+
+    const speed = Math.hypot(mvx, mvy) / dt;
+    const pausedMult = paused ? PAUSED_SHAKE_MULT : 1;
+    const shakeFlipsNeeded = SHAKE_FLIPS * pausedMult;
+    const shakeSpeedNeeded = SHAKE_SPEED * pausedMult;
+    const vigorous = drag.flips.length >= SHAKE_FLIPS * 2 && speed > SHAKE_SPEED * 2;
+    if (drag.flips.length >= shakeFlipsNeeded && speed > shakeSpeedNeeded && (!b.frozen || drag.rightClick)){
+      if (drag.rightClick){
+        b.size = Math.max(GONE_AT + 1, b.size * (1 - GROW_STEP) - 4);
+      } else {
+        b.size = Math.min(MAX_SIZE, b.size * (1 + GROW_STEP) + 6);
+        b.age = 0;
+      }
+      b.grewIn = true;
+      b.el.classList.remove('pop'); void b.el.offsetWidth; b.el.classList.add('pop');
+      drag.flips.length = 0;
+      drag.shook = true;
+    } else if (vigorous && b.frozen && !drag.rightClick){
+      // vigorous shake (2× threshold) grows even pinned bubbles
+      b.size = Math.min(MAX_SIZE, b.size * (1 + GROW_STEP) + 6);
+      b.el.classList.remove('pop'); void b.el.offsetWidth; b.el.classList.add('pop');
+      drag.flips.length = 0;
+      drag.shook = true;
+    }
+
+    // move all group members by the same delta (rigid body)
+    const ddx = nx - drag.lastCX, ddy = ny - drag.lastCY;
+    drag.comp.forEach(n => { n.x += ddx; n.y += ddy; });
+    drag.lastCX = nx; drag.lastCY = ny;
+    drag.lastX = e.clientX; drag.lastY = e.clientY; drag.lastT = now;
+  });
+
+  const CLICK_MOVE_THRESHOLD = 6;
+
+  addEventListener('pointerup', e => {
+    if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    if (panDrag){ panDrag = null; sky.style.cursor = spaceHeld ? 'grab' : ''; return; }
+
+    if (bubblePinch && (e.pointerId === bubblePinch.id1 || e.pointerId === bubblePinch.id2)){
+      bubblePinch.comp.forEach(n => { n._dragging = false; n.vx = 0; n.vy = 0; });
+      bubblePinch.b.el.classList.remove('dragging');
+      lastActivityPos = {x: bubblePinch.b.x, y: bubblePinch.b.y};
+      bubblePinch = null;
+      return;
+    }
+
+    if (skyGesture && skyGesture.ids.includes(e.pointerId)){
+      const g = skyGesture;
+      g.ids = g.ids.filter(id => id !== e.pointerId);
+      if (g.ids.length === 0){
+        skyGesture = null;
+        if (g.mode === 'tap' && !g.dismissedUI && performance.now() - g.t0 < 600){
+          if (arrowSource) cancelArrowMode();
+          else openAddModal({x: g.downX, y: g.downY});
+        }
+      } else {
+        // one finger lifted mid-pinch — keep panning with the survivor
+        const p = ptrs.get(g.ids[0]);
+        g.mode = 'pan';
+        if (p){ g.lastX = p.x; g.lastY = p.y; }
+      }
+      return;
+    }
+
+    if (!drag) return;
+    const b = drag.b;
+    const vx = clamp(drag.velX, -VMAX, VMAX);
+    const vy = clamp(drag.velY, -VMAX, VMAX);
+    drag.comp.forEach(n => { n._dragging = false; n.vx = vx; n.vy = vy; });
+    b.el.classList.remove('dragging');
+
+    const moved = Math.hypot(e.clientX - drag.downX, e.clientY - drag.downY);
+    if (moved >= CLICK_MOVE_THRESHOLD) lastActivityPos = {x: b.x, y: b.y};
+
+    const wasRightTap = drag.rightClick && !drag.shook && moved < CLICK_MOVE_THRESHOLD;
+    const wasTap = !drag.rightClick && !drag.shook && !drag.longPressed &&
+                   !drag.menuDismiss && moved < CLICK_MOVE_THRESHOLD;
+    const target = b;
+    drag = null;
+
+    if (wasRightTap && !isPhone) openContextMenu(target, e.clientX, e.clientY);
+    // a plain tap on an image bubble magnifies it (desktop and phone alike)
+    if (wasTap && target.imgEl){ openLightbox(target.imgEl.src); return; }
+    // phone: a plain short tap on a (text) thought grows a new one from it
+    if (isPhone && wasTap) openBranchModal(target);
+  });
+
+  // a cancelled pointer (system gesture, call, etc.) must not strand any state
+  addEventListener('pointercancel', () => {
+    if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    if (bubblePinch){
+      bubblePinch.comp.forEach(n => { n._dragging = false; n.vx = 0; n.vy = 0; });
+      bubblePinch.b.el.classList.remove('dragging');
+      bubblePinch = null;
+    }
+    if (drag){
+      drag.comp.forEach(n => { n._dragging = false; n.vx = 0; n.vy = 0; });
+      drag.b.el.classList.remove('dragging');
+      drag = null;
+    }
+    skyGesture = null;
+    panDrag = null;
+  });
+
+  // ── physics loop ────────────────────────────────────────────────
+  let last = performance.now();
+  function tick(now){
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+
+    // pre-compute per-frame constants once
+    const dampFactor   = paused ? 0 : Math.pow(DAMP, dt);
+    const shrinkFactor = paused ? 1 : Math.pow(GONE_AT / 150, dt / shrinkSeconds);
+    const wander       = reduceMotion ? 0 : WANDER;
+
+    // collisions (soft, positional)
+    if (paused && drag) pauseResolveUntil = now + PAUSE_RESOLVE_MS; // keep resolving while actively dragging
+    const resolvingWhilePaused = paused && now < pauseResolveUntil;
+    if (!paused || resolvingWhilePaused){
+      for (let i = 0; i < bubbles.length; i++){
+        for (let j = i+1; j < bubbles.length; j++){
+          const a = bubbles[i], b = bubbles[j];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 0.01;
+          const nx = dx/d, ny = dy/d;
+          // real rectangle edge distance in collision direction (not half-diagonal)
+          const ra = Math.min(nx ? (a.size * CARD_RATIO / 2) / Math.abs(nx) : Infinity, ny ? (a.size / 2) / Math.abs(ny) : Infinity);
+          const rb = Math.min(nx ? (b.size * CARD_RATIO / 2) / Math.abs(nx) : Infinity, ny ? (b.size / 2) / Math.abs(ny) : Infinity);
+          const minD = ra + rb + GAP;
+          if (d < minD){
+            const overlap = minD - d;
+            if (a._dragging){
+              b.x += nx*overlap; b.y += ny*overlap;
+            } else if (b._dragging){
+              a.x -= nx*overlap; a.y -= ny*overlap;
+            } else {
+              const h = overlap / 2;
+              a.x -= nx*h; a.y -= ny*h;
+              b.x += nx*h; b.y += ny*h;
+              // while paused, resolve positionally only — no velocity, since motion is frozen
+              if (!paused){
+                a.vx = clamp(a.vx - nx*h*PUSH, -VMAX, VMAX);
+                a.vy = clamp(a.vy - ny*h*PUSH, -VMAX, VMAX);
+                b.vx = clamp(b.vx + nx*h*PUSH, -VMAX, VMAX);
+                b.vy = clamp(b.vy + ny*h*PUSH, -VMAX, VMAX);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (let i = bubbles.length - 1; i >= 0; i--){
+      const b = bubbles[i];
+
+      // size & age
+      if (!paused){
+        if (!b.grewIn){
+          b.size += (b.baseSize - b.size) * Math.min(1, dt * 6);
+          if (b.baseSize - b.size < 1){ b.size = b.baseSize; b.grewIn = true; }
+        } else if (!b.frozen && !b._dragging){
+          b.size *= shrinkFactor;   // flat constant rate
+          b.age  += dt;
+        }
+      }
+      if (b.size <= GONE_AT){ forget(b); continue; }
+
+      // motion
+      if (!b._dragging && !b.frozen){
+        if (paused){
+          b.vx = 0; b.vy = 0;
+        } else {
+          // gravity toward this bubble's section center
+          const sg = sectionGravity(b);
+          let ax = (sg.x - b.x) * CENTER_PULL + (Math.random() - 0.5) * wander;
+          let ay = (sg.y - b.y) * CENTER_PULL + (Math.random() - 0.5) * wander;
+          // suppress gravity component pushing into nearest divider
+          if (dividerState === 1 || dividerState === 2){
+            if (Math.abs(b.x - cx) < b.size/2 + 4) ax = 0;
+          }
+          if (dividerState === 2){
+            if (Math.abs(b.y - cy) < b.size/2 + 4) ay = 0;
+          }
+          if (dividerState === 3){
+            const d1x = W/3, d2x = 2*W/3;
+            if (Math.abs(b.x - d1x) < b.size/2 + 4 || Math.abs(b.x - d2x) < b.size/2 + 4) ax = 0;
+            if (Math.abs(b.y - cy) < b.size/2 + 4) ay = 0;
+          }
+          b.vx = clamp((b.vx + ax * dt) * dampFactor, -VMAX, VMAX);
+          b.vy = clamp((b.vy + ay * dt) * dampFactor, -VMAX, VMAX);
+          const prevX = b.x, prevY = b.y;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+
+          // soft walls — full card half-width for x, full card half-height for y
+          const rw = b.size * CARD_RATIO / 2;
+          const r  = b.size / 2;
+          if (b.x < rw){ b.x = rw; b.vx = Math.abs(b.vx) * 0.6; }
+          else if (b.x > W - rw){ b.x = W - rw; b.vx = -Math.abs(b.vx) * 0.6; }
+          if (b.y < r){ b.y = r; b.vy = Math.abs(b.vy) * 0.6; }
+          else if (b.y > H - r){ b.y = H - r; b.vy = -Math.abs(b.vy) * 0.6; }
+
+          // divider walls — positional constraint
+          if (dividerState === 1 || dividerState === 2){
+            if (prevX < cx){ if (b.x > cx - r){ b.x = cx - r; if (b.vx > 0) b.vx *= -0.35; } }
+            else            { if (b.x < cx + r){ b.x = cx + r; if (b.vx < 0) b.vx *= -0.35; } }
+          }
+          if (dividerState === 2){
+            if (prevY < cy){ if (b.y > cy - r){ b.y = cy - r; if (b.vy > 0) b.vy *= -0.35; } }
+            else            { if (b.y < cy + r){ b.y = cy + r; if (b.vy < 0) b.vy *= -0.35; } }
+          }
+          if (dividerState === 3){
+            const d1x = W/3, d2x = 2*W/3;
+            if (prevX < d1x)      { if (b.x > d1x - r){ b.x = d1x - r; if (b.vx > 0) b.vx *= -0.35; } }
+            else if (prevX < d2x) {
+              if (b.x < d1x + r)  { b.x = d1x + r; if (b.vx < 0) b.vx *= -0.35; }
+              if (b.x > d2x - r)  { b.x = d2x - r; if (b.vx > 0) b.vx *= -0.35; }
+            } else                { if (b.x < d2x + r){ b.x = d2x + r; if (b.vx < 0) b.vx *= -0.35; } }
+            if (prevY < cy){ if (b.y > cy - r){ b.y = cy - r; if (b.vy > 0) b.vy *= -0.35; } }
+            else            { if (b.y < cy + r){ b.y = cy + r; if (b.vy < 0) b.vy *= -0.35; } }
+          }
+        }
+      }
+
+      // render
+      const scale = b.size / b.baseSize;
+      b.el.style.transform = `translate(${b.x - b.baseSize * CARD_RATIO * scale * 0.5}px,${b.y - b.baseSize * scale * 0.5}px) scale(${scale})`;
+      // actual lifetime varies by baseSize; fade from 50% of that
+      const actualLife = shrinkSeconds * Math.log(b.baseSize / GONE_AT) / Math.log(150 / GONE_AT);
+      const fadeStart  = actualLife * 0.5;
+      b.el.style.opacity = b.frozen ? 1
+        : b.age < fadeStart ? 1
+        : Math.max(0, 1 - (b.age - fadeStart) / (actualLife - fadeStart));
+    }
+
+    updateBranchLines();
+    updateArrows();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ── forgetting & restoring ──────────────────────────────────────
+  function forget(b){
+    removeBranchLinesFor(b);
+    removeArrowsFor(b);
+    b.el.remove();
+    const i = bubbles.indexOf(b);
+    if (i >= 0) bubbles.splice(i, 1);
+    forgotten.unshift({ id: b.id, text: b.text, baseSize: b.baseSize, hue: b.hue });
+    renderForgotten();
+  }
+
+  function restore(entry){
+    const k = forgotten.indexOf(entry);
+    if (k >= 0) forgotten.splice(k, 1);
+    makeBubble(entry.text, { baseSize: entry.baseSize, hue: entry.hue });
+    renderForgotten();
+  }
+
+  // fuzzy match: every char of needle appears in haystack in order
+  function fuzzyMatch(needle, haystack){
+    const n = needle.toLowerCase(), h = haystack.toLowerCase();
+    let ni = 0;
+    for (let hi = 0; hi < h.length && ni < n.length; hi++){
+      if (h[hi] === n[ni]) ni++;
+    }
+    return ni === n.length;
+  }
+
+  const searchEl = document.getElementById('forgotten-search');
+  if (searchEl) searchEl.addEventListener('input', () => renderForgotten());
+
+  function renderForgotten(){
+    if (countEl) countEl.textContent = forgotten.length;
+    listEl.innerHTML = '';
+    const q = (searchEl && searchEl.value.trim()) || '';
+    const visible = q ? forgotten.filter(e => fuzzyMatch(q, e.text)) : forgotten;
+    if (!visible.length){
+      listEl.innerHTML = `<div class="empty">${forgotten.length ? 'No match.' : 'No past bubbles yet.'}</div>`;
+      return;
+    }
+    for (const entry of visible){
+      const row = document.createElement('div');
+      row.className = 'ghost';
+
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = bubbleColor(entry.hue);
+
+      const t = document.createElement('span');
+      t.className = 'g-txt';
+      t.textContent = entry.text.replace(/\s+/g,' ').trim();
+
+      const btn = document.createElement('button');
+      btn.textContent = 'Restore';
+      btn.addEventListener('click', () => restore(entry));
+
+      row.append(dot, t, btn);
+      listEl.appendChild(row);
+    }
+  }
+
+  // ── shed: forget all unfrozen (unpinned) bubbles ─────────────────
+  document.getElementById('shed-btn').addEventListener('click', shed);
+
+  const paletteBtn  = document.getElementById('palette-btn');
+  const palettePicker = document.getElementById('palette-picker');
+
+  function buildPalettePicker(){
+    palettePicker.innerHTML = '';
+    PALETTES.forEach((pal, i) => {
+      const row = document.createElement('div');
+      row.className = 'pal-row' + (i === currentPaletteIdx ? ' pal-active' : '');
+      // show 6 swatches
+      pal.slice(0, 6).forEach(hex => {
+        const s = document.createElement('span');
+        s.className = 'pal-swatch';
+        s.style.background = '#' + hex;
+        row.appendChild(s);
+      });
+      const lbl = document.createElement('span');
+      lbl.className = 'pal-name';
+      lbl.textContent = PALETTE_NAMES[i] || ('Palette ' + (i+1));
+      row.appendChild(lbl);
+      if (i < 9){
+        const num = document.createElement('span');
+        num.className = 'pal-num';
+        num.textContent = String(i + 1);
+        row.appendChild(num);
+      }
+      row.addEventListener('click', () => {
+        currentPaletteIdx = i;
+        colorBag = [];
+        applyPaletteToAll();
+        palettePicker.hidden = true;
+      });
+      palettePicker.appendChild(row);
+    });
+  }
+
+  if (paletteBtn) paletteBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!palettePicker.hidden){ palettePicker.hidden = true; return; }
+    buildPalettePicker();
+    const rect = paletteBtn.getBoundingClientRect();
+    palettePicker.style.bottom = 'auto';
+    palettePicker.style.transform = '';
+    palettePicker.style.left = rect.left + 'px';
+    palettePicker.hidden = false;
+    requestAnimationFrame(() => {
+      const r = palettePicker.getBoundingClientRect();
+      const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - r.height - 8));
+      palettePicker.style.top = top + 'px';
+    });
+  });
+
+  document.addEventListener('pointerdown', e => {
+    if (!palettePicker.hidden && !palettePicker.contains(e.target) && e.target !== paletteBtn)
+      palettePicker.hidden = true;
+    if (sheetOpen() && !mobSheet.contains(e.target) && e.target !== mobMenuBtn)
+      closeSheet();
+  });
+  function isTextInputFocused(){
+    const t = document.activeElement;
+    return !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT');
+  }
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.code === 'Space'){ e.preventDefault(); shed(); }
+    if (e.altKey && e.code === 'KeyH'){ e.preventDefault(); shed(); }
+    if (e.altKey && e.key === '|'){ e.preventDefault(); setDividerState((dividerState + 1) % 4); }
+    if (e.altKey && e.code === 'KeyP'){ e.preventDefault(); setPaused(!paused); }
+
+    // plain-letter shortcuts — only when no text field (composer or popup input) has focus
+    if (!isTextInputFocused()){
+      if (e.code === 'End' || e.code === 'KeyT'){ e.preventDefault(); setPaused(!paused); }
+      if (e.key === '|'){ e.preventDefault(); setDividerState((dividerState + 1) % 4); }
+      if (e.code === 'KeyS'){ e.preventDefault(); document.getElementById('save-btn').click(); }
+      if (e.code === 'KeyL'){ e.preventDefault(); document.getElementById('load-btn').click(); }
+      if (e.code === 'KeyH'){ e.preventDefault(); shed(); }
+      if (e.code === 'KeyP'){
+        e.preventDefault();
+        if (paletteBtn) paletteBtn.dispatchEvent(new Event('click', {bubbles: true}));
+      }
+    }
+
+    // in the palette popup, digit keys pick a palette by position
+    if (!palettePicker.hidden && /^[1-9]$/.test(e.key)){
+      const idx = Number(e.key) - 1;
+      const rows = palettePicker.querySelectorAll('.pal-row');
+      if (idx < rows.length){ e.preventDefault(); rows[idx].click(); }
+    }
+  });
+
+  function shed(){ for (const b of [...bubbles]) if (!b.frozen) forget(b); }
+
+  // ── color mode (only remaining mode) ─────────────────────────────
+  let mode = null;
+  const banner = document.getElementById('banner');
+  const chips = [...document.querySelectorAll('.chip[data-mode]')];
+
+  function setMode(m){
+    mode = (mode === m) ? null : m;
+    document.body.classList.toggle('mode-color', mode === 'color');
+    chips.forEach(c => c.classList.toggle('on', c.dataset.mode === mode));
+    banner.style.display = mode ? 'block' : 'none';
+    banner.textContent = mode === 'color' ? 'Color mode — right-click a thought to recolor it · Esc to exit' : '';
+  }
+  chips.forEach(c => c.addEventListener('click', () => setMode(c.dataset.mode)));
+
+  // ── edit modal ────────────────────────────────────────────────────
+  const eModal  = document.getElementById('edit-modal');
+  const eInput  = document.getElementById('edit-input');
+  let editTarget = null;
+
+  function openEditModal(b){
+    editTarget = b;
+    eInput.value = b.text;
+    eModal.hidden = false;
+    if (isPhone) document.body.classList.add('modal-open');
+    requestAnimationFrame(() => { eInput.focus(); eInput.select(); });
+  }
+  function closeEditModal(){
+    eModal.hidden = true; editTarget = null;
+    eInput.blur();
+    if (isPhone) document.body.classList.remove('modal-open');
+  }
+  function commitEdit(){
+    const text = eInput.value.replace(/\s+$/, '');
+    if (editTarget && text.trim()){
+      editTarget.text = text;
+      editTarget.txt.textContent = text;
+      editTarget.txt.style.fontSize = fontForBubble(editTarget) + 'px';
+    }
+    closeEditModal();
+  }
+
+  document.getElementById('edit-ok').addEventListener('click', commitEdit);
+  document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
+  eModal.addEventListener('pointerdown', e => { if (e.target === eModal) closeEditModal(); });
+  eInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); commitEdit(); }
+    else if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeEditModal(); }
+  });
+
+  // ── branch modal (desktop only, via right-click menu) ────────────
+  const bModal  = document.getElementById('branch-modal');
+  const bInput  = document.getElementById('branch-input');
+  let pendingParent = null;
+
+  function openBranchModal(parent){
+    closeSheet(); palettePicker.hidden = true;
+    pendingParent = parent;
+    bInput.value = '';
+    bModal.hidden = false;
+    if (isPhone) document.body.classList.add('modal-open');
+    requestAnimationFrame(() => bInput.focus());
+  }
+  function closeBranchModal(){
+    bModal.hidden = true; pendingParent = null;
+    bInput.blur();
+    if (isPhone) document.body.classList.remove('modal-open');
+  }
+  function commitBranch(){
+    const text = bInput.value.replace(/\s+$/,'');
+    if (pendingParent && text.trim()) createBranch(pendingParent, text);
+    closeBranchModal();
+  }
+  // ── branch connection lines (minimal — visual only) ──────────────
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const linksSvg = document.getElementById('links');
+  const branchLinks = [];   // { a, b, el }
+
+  function addBranchLine(a, b){
+    const ln = document.createElementNS(SVG_NS, 'line');
+    ln.setAttribute('stroke-width', '2');
+    ln.setAttribute('stroke-linecap', 'round');
+    ln.setAttribute('stroke-dasharray', '5 4');
+    linksSvg.appendChild(ln);
+    branchLinks.push({ a, b, el: ln });
+  }
+
+  function removeBranchLinesFor(b){
+    for (let i = branchLinks.length - 1; i >= 0; i--){
+      const L = branchLinks[i];
+      if (L.a === b || L.b === b){ L.el.remove(); branchLinks.splice(i, 1); }
+    }
+  }
+
+  function updateBranchLines(){
+    for (const L of branchLinks){
+      L.el.setAttribute('x1', L.a.x); L.el.setAttribute('y1', L.a.y);
+      L.el.setAttribute('x2', L.b.x); L.el.setAttribute('y2', L.b.y);
+      L.el.setAttribute('stroke', bubbleColor(L.a.hue));
+    }
+  }
+
+  function createBranch(parent, text){
+    const baseSize = sizeForText(text);
+    const x = parent.x + rand(-60, 60);
+    const y = parent.y + parent.size/2 + baseSize/2 + 30;  // 30px gap between card edges
+    const child = makeBubble(text, { baseSize, x, y, hue: parent.hue });  // inherit parent color
+    child.size = child.baseSize; child.grewIn = true;
+    lastActivityPos = {x: child.x, y: child.y};
+    setHeld(parent, true);
+    setHeld(child, true);
+    addBranchLine(parent, child);
+  }
+
+  // ── directed arrows (no rigid body, deleted when either bubble goes) ──
+  const arrows = [];   // { a, b, el }
+  let arrowSource = null;
+
+  function startArrowMode(b){
+    arrowSource = b;
+    b.el.classList.add('sel');
+    banner.style.display = 'block';
+    banner.textContent = 'Arrow mode — click another thought to connect · Esc to cancel';
+  }
+  function cancelArrowMode(){
+    if (arrowSource) arrowSource.el.classList.remove('sel');
+    arrowSource = null;
+    banner.style.display = 'none';
+  }
+  function addArrow(a, b){
+    const el = document.createElementNS(SVG_NS, 'path');
+    el.setAttribute('stroke-width', '2');
+    el.setAttribute('fill', 'none');
+    el.setAttribute('marker-end', 'url(#arrowhead)');
+    linksSvg.appendChild(el);
+    arrows.push({ a, b, el });
+  }
+  function completeArrow(b){
+    if (!arrowSource || arrowSource === b){ cancelArrowMode(); return; }
+    addArrow(arrowSource, b);
+    cancelArrowMode();
+    // defensive: recipient bubble should never be left in dragging state
+    b._dragging = false;
+    b.el.classList.remove('dragging', 'sel');
+    if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+  function removeArrowsFor(b){
+    for (let i = arrows.length - 1; i >= 0; i--){
+      const A = arrows[i];
+      if (A.a === b || A.b === b){ A.el.remove(); arrows.splice(i, 1); }
+    }
+  }
+  function updateArrows(){
+    for (const A of arrows){
+      const {a, b} = A;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = dx/len, ny = dy/len;
+
+      // distance from a rectangle's center to its edge along direction (nx, ny)
+      function edgeDist(bubble, nx, ny){
+        const hw = bubble.size * CARD_RATIO / 2;
+        const hh = bubble.size / 2;
+        const tx = nx !== 0 ? hw / Math.abs(nx) : Infinity;
+        const ty = ny !== 0 ? hh / Math.abs(ny) : Infinity;
+        return Math.min(tx, ty);
+      }
+
+      const ra = edgeDist(a,  nx,  ny);
+      const rb = edgeDist(b, -nx, -ny);
+      const sx = a.x + nx * ra, sy = a.y + ny * ra;
+      const ex = b.x - nx * rb, ey = b.y - ny * rb;
+      // curved: control point offset perpendicularly
+      const mx = (sx+ex)/2 - ny * 15, my = (sy+ey)/2 + nx * 15;
+      A.el.setAttribute('d', `M${sx},${sy} Q${mx},${my} ${ex},${ey}`);
+      A.el.setAttribute('stroke', bubbleColor(A.a.hue));
+    }
+  }
+
+  document.getElementById('branch-ok').addEventListener('click', commitBranch);
+  document.getElementById('branch-cancel').addEventListener('click', closeBranchModal);
+  bModal.addEventListener('pointerdown', e => { if (e.target === bModal) closeBranchModal(); });
+  bInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); commitBranch(); }
+    else if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeBranchModal(); }
+  });
+
+  function recolor(b){
+    b.hue = (Math.round(b.hue) + 1 + Math.floor(rand(0, palette().length - 1))) % palette().length;
+    applyColor(b);
+    b.el.classList.remove('pop'); void b.el.offsetWidth; b.el.classList.add('pop');
+  }
+
+  // ── right-click context menu ─────────────────────────────────────
+  const ctxMenu = document.getElementById('context-menu');
+  const ctxPreview = document.getElementById('ctx-preview');
+  let ctxTarget = null;
+
+  function openContextMenu(b, x, y){
+    ctxTarget = b;
+    ctxPreview.textContent = b.text;
+    const pinBtn = ctxMenu.querySelector('button[data-action="pin"]');
+    if (pinBtn) pinBtn.textContent = b.frozen ? 'Unpin' : 'Pin';
+    const hlBtn = ctxMenu.querySelector('button[data-action="highlight"]');
+    if (hlBtn) hlBtn.textContent = b.highlighted ? 'Remove Highlight' : 'Highlight';
+    ctxMenu.hidden = false;
+    ctxMenu.style.left = x + 'px';
+    ctxMenu.style.top = y + 'px';
+    requestAnimationFrame(() => {
+      const r = ctxMenu.getBoundingClientRect();
+      const left = Math.min(x, window.innerWidth - r.width - 8);
+      const top = Math.min(y, window.innerHeight - r.height - 8);
+      ctxMenu.style.left = Math.max(8, left) + 'px';
+      ctxMenu.style.top = Math.max(8, top) + 'px';
+    });
+  }
+  function closeContextMenu(){ ctxMenu.hidden = true; ctxTarget = null; }
+
+  ctxMenu.addEventListener('pointerdown', e => {
+    // prevent the global outside-click handler from closing the menu during button press
+    e.stopPropagation();
+  });
+
+  function bumpBubbleFont(b, factor){
+    b.fontMult = clamp((b.fontMult || 1) * factor, 0.1, 20);
+    b.txt.style.fontSize = fontForBubble(b) + 'px';
+  }
+  function bumpBubbleSize(b, factor){
+    b.baseSize = clamp(b.baseSize * factor, 14, 400);
+    b.size     = clamp(b.size     * factor, GONE_AT + 2, 400);
+    b.el.style.width  = Math.round(b.baseSize * CARD_RATIO) + 'px';
+    b.el.style.height = b.baseSize + 'px';
+    b.txt.style.fontSize = fontForBubble(b) + 'px';
+  }
+
+  function runCtxAction(action, b){
+    if (!b) return;
+    closeContextMenu();   // close first so arrowSource remains set
+    if (action === 'branch') openBranchModal(b);
+    else if (action === 'arrow') startArrowMode(b);
+    else if (action === 'edit'){ openEditModal(b); closeContextMenu(); }
+    else if (action === 'pin') setHeld(b, !b.frozen);
+    else if (action === 'highlight') setHighlight(b, !b.highlighted);
+    else if (action === 'color') recolor(b);
+    else if (action === 'font-up') bumpBubbleFont(b, 1.15);
+    else if (action === 'font-down') bumpBubbleFont(b, 1/1.15);
+    else if (action === 'size-down') bumpBubbleSize(b, 1/1.15);
+    else if (action === 'copy'){
+      const ta = document.createElement('textarea');
+      ta.value = b.text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); ta.remove();
+      closeContextMenu();
+    }
+    else if (action === 'break'){ removeBranchLinesFor(b); removeArrowsFor(b); closeContextMenu(); }
+    else if (action === 'delete') forget(b);
+  }
+
+  ctxMenu.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    runCtxAction(btn.dataset.action, ctxTarget);
+  });
+
+  addEventListener('pointerdown', e => {
+    if (!ctxMenu.hidden && !ctxMenu.contains(e.target)) closeContextMenu();
+  });
+
+  // ── context-menu keyboard shortcuts (only while the menu is open) ──
+  const CTX_KEY_ACTIONS = {
+    b: 'branch', a: 'arrow', e: 'edit', n: 'color',
+    c: 'copy', x: 'break', d: 'delete', f: 'pin', h: 'highlight'
+  };
+  document.addEventListener('keydown', e => {
+    if (ctxMenu.hidden) return;
+    const action = CTX_KEY_ACTIONS[e.key.toLowerCase()];
+    if (!action) return;
+    e.preventDefault();
+    runCtxAction(action, ctxTarget);
+  });
+
+  sky.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
+  let skyDownPos = null;
+  sky.addEventListener('pointerdown', e => {
+    // middle mouse button → pan regardless of space or target
+    if (e.button === 1){
+      e.preventDefault();
+      panDrag = {lastX: e.clientX, lastY: e.clientY};
+      sky.style.cursor = 'grabbing';
+      sky.setPointerCapture(e.pointerId);
+      skyDownPos = null;
+      return;
+    }
+    if (!isPhone && spaceHeld){
+      e.preventDefault();
+      panDrag = {lastX: e.clientX, lastY: e.clientY};
+      sky.style.cursor = 'grabbing';
+      sky.setPointerCapture(e.pointerId);
+      skyDownPos = null;   // don't open add-modal after a pan
+      return;
+    }
+    if (e.target.closest('.bubble')) return;
+    // a title is being edited — this click just ends the edit, nothing else
+    const editingTitle = titlesLayer.querySelector('.sec-title.editing');
+    if (editingTitle){
+      e.preventDefault();
+      editingTitle.blur();
+      skyDownPos = null;
+      return;
+    }
+    input.blur();
+
+    if (isPhone){
+      if (drag || bubblePinch) return;   // a bubble already owns this gesture
+      e.preventDefault();
+      if (!skyGesture){
+        skyGesture = {
+          ids: [e.pointerId], mode: 'tap',
+          downX: e.clientX, downY: e.clientY,
+          lastX: e.clientX, lastY: e.clientY,
+          t0: performance.now(),
+          // if any panel was showing, this touch is a dismissal, not a "new thought"
+          dismissedUI: !ctxMenu.hidden || !palettePicker.hidden || sheetOpen() ||
+                       drawer.classList.contains('open')
+        };
+        closeSheet();
+        drawer.classList.remove('open');
+      } else if (skyGesture.ids.length === 1){
+        skyGesture.ids.push(e.pointerId);
+        skyGesture.mode = 'pinch';
+        const p1 = ptrs.get(skyGesture.ids[0]) || {x: skyGesture.lastX, y: skyGesture.lastY};
+        const p2 = ptrs.get(e.pointerId) || {x: e.clientX, y: e.clientY};
+        skyGesture.lastD  = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+        skyGesture.lastMX = (p1.x + p2.x) / 2;
+        skyGesture.lastMY = (p1.y + p2.y) / 2;
+      }
+      return;
+    }
+
+    skyDownPos = {x: e.clientX, y: e.clientY};
+  });
+  sky.addEventListener('pointerup', e => {
+    if (isPhone || !skyDownPos) return;
+    const d = Math.hypot(e.clientX - skyDownPos.x, e.clientY - skyDownPos.y);
+    const pos = skyDownPos;
+    skyDownPos = null;
+    if (d < 6 && !e.target.closest('.bubble')){
+      if (arrowSource){ cancelArrowMode(); return; }
+      openAddModal(pos);
+    }
+  });
+
+  // fade-speed slider
+  const fade = document.getElementById('fade');
+  const fadeVal = document.getElementById('fade-val');
+  fade.value = shrinkSeconds; fadeVal.textContent = shrinkSeconds + 's';
+  fade.addEventListener('input', () => {
+    shrinkSeconds = +fade.value;
+    fadeVal.textContent = shrinkSeconds + 's';
+  });
+
+  // bubble size slider — controls diameter, not font
+  const bub = document.getElementById('bub');
+  const bubVal = document.getElementById('bub-val');
+  let prevBubScale = bubbleScale;
+  bub.value = Math.round(bubbleScale * 100); bubVal.textContent = Math.round(bubbleScale * 100) + '%';
+
+  function refreshBubbleFonts(){
+    for (const b of bubbles){
+      b.txt.style.fontSize = fontForBubble(b) + 'px';
+    }
+  }
+
+  function setBubbleScale(newScale){
+    newScale = clamp(newScale, +bub.min / 100, +bub.max / 100);
+    const ratio = newScale / prevBubScale;
+    bubbleScale = newScale; prevBubScale = newScale;
+    bub.value = Math.round(newScale * 100);
+    bubVal.textContent = Math.round(newScale * 100) + '%';
+    for (const b of bubbles){
+      b.baseSize *= ratio; b.size *= ratio;
+      b.el.style.width  = Math.round(b.baseSize * CARD_RATIO) + 'px';
+      b.el.style.height = b.baseSize + 'px';
+    }
+    refreshBubbleFonts();
+  }
+
+  bub.addEventListener('input', () => setBubbleScale(+bub.value / 100));
+
+  // mouse wheel: plain = bubble size, Ctrl = font size
+  function applyZoomAt(factor, ox, oy){
+    for (const b of bubbles){
+      b.x = ox + (b.x - ox) * factor;
+      b.y = oy + (b.y - oy) * factor;
+      // clamp so zooming out never shrinks a thought past the forget threshold
+      b.baseSize = clamp(b.baseSize * factor, 14, 400);
+      b.size     = clamp(b.size     * factor, GONE_AT + 2, 400);
+      b.el.style.width  = Math.round(b.baseSize * CARD_RATIO) + 'px';
+      b.el.style.height = b.baseSize + 'px';
+    }
+    refreshBubbleFonts();
+  }
+  function applyZoom(factor){ applyZoomAt(factor, cx, cy); }
+
+  sky.addEventListener('wheel', e => {
+    if (isPhone) return;
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 1/1.08;
+    const step = e.deltaY < 0 ? 0.05 : -0.05;
+    const dir  = e.deltaY < 0 ? 1 : -1;
+    const h = hoveredBubble;
+
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey){
+      if (h){
+        // per-bubble font size — permissive, can force mid-word breaks or overflow
+        h.fontMult = clamp((h.fontMult || 1) * (1 + step * 2), 0.1, 20);
+        h.txt.style.fontSize = fontForBubble(h) + 'px';
+      } else {
+        fontScale = clamp(fontScale + step, +font.min / 100, +font.max / 100);
+        font.value = Math.round(fontScale * 100);
+        fontVal.textContent = Math.round(fontScale * 100) + '%';
+        refreshBubbleFonts();
+      }
+    } else if (e.ctrlKey || e.metaKey){
+      // ctrl+scroll → bubble size: per-bubble if on one, all if not
+      if (h){
+        const ratio = 1 + step;
+        h.baseSize = clamp(h.baseSize * ratio, 20, 400);
+        h.size     = clamp(h.size     * ratio, GONE_AT + 1, 400);
+        h.el.style.width  = Math.round(h.baseSize * CARD_RATIO) + 'px';
+        h.el.style.height = h.baseSize + 'px';
+        h.txt.style.fontSize = fontForBubble(h) + 'px';
+      } else {
+        setBubbleScale(bubbleScale + step);
+      }
+    } else if (e.altKey){
+      if (h){
+        // alt+scroll on bubble → cycle that bubble's color within current palette
+        const p = palette();
+        h.hue = (Math.round(h.hue) + dir + p.length) % p.length;
+        applyColor(h);
+      } else {
+        // alt+scroll off bubble → cycle palette
+        currentPaletteIdx = (currentPaletteIdx + (dir > 0 ? 1 : PALETTES.length - 1)) % PALETTES.length;
+        colorBag = [];
+        applyPaletteToAll();
+      }
+    } else if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !h){
+      // plain scroll off bubbles → global zoom
+      applyZoom(zoomFactor);
+    }
+  }, { passive: false });
+
+  // font size slider — controls font only, not bubble diameter
+  const font = document.getElementById('font');
+  const fontVal = document.getElementById('font-val');
+  font.value = Math.round(fontScale * 100); fontVal.textContent = Math.round(fontScale * 100) + '%';
+  font.addEventListener('input', () => {
+    fontScale = +font.value / 100;
+    fontVal.textContent = +font.value + '%';
+    refreshBubbleFonts();
+  });
+
+  let suppressResize = false;
+  [input, addInput, eInput, bInput].forEach(el => {
+    el.addEventListener('focus', () => { suppressResize = true; });
+    el.addEventListener('blur', () => { suppressResize = false; measure(); });
+  });
+
+  addEventListener('keydown', e => {
+    if (isPhone) return;
+    const t = e.target;
+    const inTextField = t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT');
+    if (e.key === 'Escape' && inTextField){ t.blur(); }
+    if (inTextField) return;
+    if (e.key === '/' || e.key === '\\'){ e.preventDefault(); input.focus(); return; }
+    const k = e.key.toLowerCase();
+    if (k === 'p') setMode('color');
+    else if (e.key === 'Escape'){ setMode(null); cancelArrowMode(); drawer.classList.remove('open'); closeContextMenu(); }
+  });
+
+  function timestamp(){
+    const pad = n => String(n).padStart(2, '0');
+    const t = new Date();
+    return `${t.getFullYear()}${pad(t.getMonth()+1)}${pad(t.getDate())}-${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}`;
+  }
+
+  // ── save / load the whole canvas state ────────────────────────────
+  function serializeState(){
+    return {
+      kind: 'thought-bubbles',
+      version: 3,
+      savedAt: new Date().toISOString(),
+      bubbles: bubbles.map(b => ({
+        id: b.id, text: b.text, hue: b.hue,
+        x: b.x, y: b.y, size: b.size, baseSize: b.baseSize,
+        frozen: !!b.frozen, highlighted: !!b.highlighted, image: b.image || undefined
+      })),
+      forgotten: forgotten.map(f => ({ id: f.id, text: f.text, baseSize: f.baseSize, hue: f.hue })),
+      branchLinks: branchLinks.map(L => ({ a: L.a.id, b: L.b.id })),
+      arrows: arrows.map(A => ({ a: A.a.id, b: A.b.id })),
+      dividerState,
+      sectionTitles: {...sectionTitles},
+      paletteIdx: currentPaletteIdx
+    };
+  }
+
+  function clearCanvas(){
+    for (const b of [...bubbles]) b.el.remove();
+    bubbles.length = 0;
+    forgotten.length = 0;
+    renderForgotten();
+  }
+
+  function loadState(state){
+    if (!state || state.kind !== 'thought-bubbles' || !Array.isArray(state.bubbles)){
+      throw new Error('Not a thought-bubbles save file');
+    }
+    clearCanvas();
+    if (Number.isInteger(state.paletteIdx) && state.paletteIdx >= 0 && state.paletteIdx < PALETTES.length){
+      currentPaletteIdx = state.paletteIdx;
+      colorBag = [];
+    }
+    let maxId = 0;
+    const byId = new Map();
+    for (const bd of state.bubbles){
+      const b = makeBubble(bd.text || '', {
+        baseSize: bd.baseSize, hue: bd.hue,
+        held: !!bd.frozen, x: bd.x, y: bd.y, image: bd.image
+      });
+      b.size = bd.size || b.baseSize;
+      b.grewIn = true;
+      if (bd.highlighted) setHighlight(b, true);
+      byId.set(bd.id, b);
+      maxId = Math.max(maxId, bd.id || 0);
+    }
+    for (const f of (state.forgotten || [])){
+      forgotten.push({ id: f.id, text: f.text, baseSize: f.baseSize, hue: f.hue });
+      maxId = Math.max(maxId, f.id || 0);
+    }
+    for (const L of (state.branchLinks || [])){
+      const a = byId.get(L.a), b = byId.get(L.b);
+      if (a && b) addBranchLine(a, b);
+    }
+    for (const A of (state.arrows || [])){
+      const a = byId.get(A.a), b = byId.get(A.b);
+      if (a && b) addArrow(a, b);
+    }
+    renderForgotten();
+    nextId = maxId + 1;
+    for (const k of Object.keys(sectionTitles)) delete sectionTitles[k];
+    if (state.sectionTitles && typeof state.sectionTitles === 'object'){
+      for (const [k, v] of Object.entries(state.sectionTitles)){
+        if (typeof v !== 'string' || !v.trim()) continue;
+        // migrate legacy "<dividerState>:<index>" keys to stable slot numbers
+        const legacy = /^(\d+):(\d+)$/.exec(k);
+        if (legacy){
+          const map = SLOT_MAPS[Number(legacy[1])] || [];
+          const slot = map[Number(legacy[2])];
+          if (slot && !sectionTitles[slot]) sectionTitles[String(slot)] = v;
+        } else {
+          sectionTitles[k] = v;
+        }
+      }
+    }
+    setDividerState(Number.isInteger(state.dividerState) ? state.dividerState : 0);
+    renderSectionTitles();
+  }
+
+  // single place that hands a generated file to the browser
+  function saveBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function flashLabel(btn, msg, revertMs){
+    const original = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(() => { btn.textContent = original; }, revertMs || 1200);
+  }
+
+  // ── canvas snapshot (no UI, just bubbles on the background) ─────
+  function capturePNG(stamp){
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    // background — read the live CSS var so it always matches what's on screen
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#2c2c30';
+    ctx.fillRect(0, 0, W, H);
+
+    // divider lines
+    ctx.setLineDash([8, 6]); ctx.strokeStyle = 'rgba(180,165,230,0.35)'; ctx.lineWidth = 2;
+    if (dividerState === 1){
+      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+    } else if (dividerState === 2){
+      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+    } else if (dividerState === 3){
+      const d1x = W/3, d2x = 2*W/3;
+      ctx.beginPath(); ctx.moveTo(d1x, 0); ctx.lineTo(d1x, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(d2x, 0); ctx.lineTo(d2x, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // section titles
+    {
+      const rects = sectionRects();
+      ctx.font = '600 13px ui-sans-serif, system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--ink-soft').trim() || '#9b95b5';
+      rects.forEach((r, i) => {
+        const t = sectionTitles[titleKey(i)];
+        if (!t) return;
+        ctx.fillText(t, r.x + r.w / 2, r.y + 19);
+      });
+    }
+
+    // branch links (dashed lines between parent/child thoughts)
+    ctx.setLineDash([5, 4]); ctx.lineWidth = 2; ctx.lineCap = 'round';
+    for (const L of branchLinks){
+      ctx.strokeStyle = bubbleColor(L.a.hue);
+      ctx.beginPath();
+      ctx.moveTo(L.a.x, L.a.y); ctx.lineTo(L.b.x, L.b.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // arrows (directed connections with an arrowhead)
+    for (const A of arrows){
+      const color = bubbleColor(A.a.hue);
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+      const dx = A.b.x - A.a.x, dy = A.b.y - A.a.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const ux = dx / d, uy = dy / d;
+      ctx.beginPath();
+      ctx.moveTo(A.a.x, A.a.y); ctx.lineTo(A.b.x, A.b.y);
+      ctx.stroke();
+      // arrowhead matching the SVG marker (8x6 triangle, refX 7)
+      const tipX = A.b.x, tipY = A.b.y;
+      const backX = tipX - ux * 8, backY = tipY - uy * 8;
+      const perpX = -uy * 3, perpY = ux * 3;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(backX + perpX, backY + perpY);
+      ctx.lineTo(backX - perpX, backY - perpY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // bubbles — draw as rounded rectangles matching the on-screen card shape
+    const CORNER = 10;  // border-radius matching CSS
+    for (const b of bubbles){
+      const hw = b.size * CARD_RATIO / 2;
+      const hh = b.size / 2;
+      const x0 = b.x - hw, y0 = b.y - hh;
+      const w  = hw * 2,   h  = hh * 2;
+
+      // fill
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 7;
+      ctx.beginPath();
+      ctx.roundRect(x0, y0, w, h, CORNER);
+      ctx.fillStyle = bubbleColor(b.hue); ctx.fill();
+      ctx.restore();
+
+      // pinned ring
+      if (b.frozen){
+        ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(245,217,155,0.9)'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(x0 - 5, y0 - 5, w + 10, h + 10, CORNER + 5);
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      // image — drawn in place of text when this bubble holds a pasted image
+      if (b.imgEl && b.imgEl.complete){
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(x0, y0, w, h, CORNER); ctx.clip();
+        const iw = b.imgEl.naturalWidth || 1, ih = b.imgEl.naturalHeight || 1;
+        const s = Math.min(w * 0.92 / iw, h * 0.92 / ih);
+        const dw = iw * s, dh = ih * s;
+        ctx.drawImage(b.imgEl, b.x - dw/2, b.y - dh/2, dw, dh);
+        ctx.restore();
+      }
+
+      // text — wrap to 72% of card width (matching CSS .txt width)
+      if (!b.image && b.text){
+        const fs = visualFontSize(b);
+        const hex = palette()[Math.abs(Math.round(b.hue)) % palette().length];
+        ctx.fillStyle = textColor(hex);
+        ctx.font = `${fs}px Georgia,serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const maxW = w * 0.72, lh = fs * 1.18;
+        const words = b.text.split(/\s+/);
+        const lines = []; let line = '';
+        for (const word of words){
+          const test = line ? line + ' ' + word : word;
+          if (line && ctx.measureText(test).width > maxW){ lines.push(line); line = word; }
+          else line = test;
+        }
+        lines.push(line);
+        let ty = b.y - (lines.length * lh) / 2 + lh / 2;
+        for (const l of lines){ ctx.fillText(l, b.x, ty); ty += lh; }
+      }
+    }
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const name = `thought-bubbles-${stamp}.png`;
+      // phones handle images far better through the share sheet (save to Photos,
+      // send, etc.); fall back to a plain download wherever that isn't offered
+      if (isPhone && navigator.canShare){
+        try {
+          const file = new File([blob], name, {type: 'image/png'});
+          if (navigator.canShare({files: [file]})){
+            navigator.share({files: [file], title: 'Thought Bubbles'})
+              .catch(err => { if (err && err.name !== 'AbortError') saveBlob(blob, name); });
+            return;
+          }
+        } catch(_){}
+      }
+      saveBlob(blob, name);
+    }, 'image/png');
+  }
+
+  document.getElementById('save-btn').addEventListener('click', (e) => {
+    try {
+      const stamp = timestamp();
+      const json = JSON.stringify(serializeState(), null, 2);
+      saveBlob(new Blob([json], { type: 'application/json' }), `thought-bubbles-${stamp}.json`);
+      capturePNG(stamp);
+      flashLabel(e.currentTarget, 'Saved!');
+    } catch(err){ flashLabel(e.currentTarget, 'Error!'); console.error('Save failed:', err); }
+  });
+
+  const loadFile = document.getElementById('load-file');
+  document.getElementById('load-btn').addEventListener('click', () => loadFile.click());
+  loadFile.addEventListener('change', () => {
+    const file = loadFile.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { loadState(JSON.parse(reader.result)); }
+      catch (err) { alert('Could not load that file: ' + err.message); }
+      loadFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // ── composer ────────────────────────────────────────────────────
+  let composing = false;
+  function autosize(){ if (!composing) { input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px'; } }
+  input.addEventListener('compositionstart', () => { composing = true; });
+  input.addEventListener('compositionend',   () => { composing = false; autosize(); });
+  input.addEventListener('input', autosize);
+
+  input.addEventListener('keydown', e => {
+    if (e.isComposing || composing) return;   // let IME finish before acting
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      const text = input.value.replace(/\s+$/,'');
+      if (text.trim()){
+        const pin = e.ctrlKey || e.metaKey;
+        const b = makeBubble(text, pin ? {held: true} : {});
+        if (pin) setHeld(b, true);
+        input.value = '';
+        autosize();
+      }
+    }
+    // Shift+Enter falls through = newline (default textarea behavior)
+  });
+
+  // ── paste an image from the clipboard straight into a bubble (desktop) ──
+  if (!isPhone){
+    document.addEventListener('paste', e => {
+      if (isTextInputFocused()) return;   // don't steal a paste meant for a text field
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      const item = [...items].find(it => it.type.startsWith('image/'));
+      if (!item) return;
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b = makeBubble('', { image: reader.result, baseSize: 200 });
+        lastActivityPos = { x: b.x, y: b.y };
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  toggle.addEventListener('click', () => drawer.classList.toggle('open'));
+  document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
+
+  input.focus();
+})();
+</script>
+</body>
+</html>
