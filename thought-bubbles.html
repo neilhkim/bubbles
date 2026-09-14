@@ -223,16 +223,39 @@
     border-radius:14px; padding:12px 14px;
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     font-family: ui-sans-serif, system-ui, sans-serif;
-    width:150px; max-width:calc(100vw - 32px);
+    width:max-content; min-width:150px; max-width:calc(100vw - 32px);
   }
+  /* collapse toggle — the panel folds down to just this row */
+  #panel-toggle{
+    all:unset; box-sizing:border-box; cursor:pointer; width:100%;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font:600 10px/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+    -webkit-tap-highlight-color:transparent;
+  }
+  #panel-toggle:hover{ color:var(--ink); }
+  #panel-toggle .caret{
+    font-size:9px; color:var(--hold);
+    transition:transform .22s cubic-bezier(.2,.8,.2,1);
+  }
+  #panel.collapsed #panel-toggle .caret{ transform:rotate(-90deg); }
+  #panel-body{
+    display:flex; flex-direction:column; gap:10px;
+    overflow:hidden;
+    transition:max-height .26s cubic-bezier(.2,.8,.2,1), opacity .18s ease;
+    max-height:80vh; opacity:1;
+  }
+  #panel.collapsed{ gap:0; }
+  #panel.collapsed #panel-body{ max-height:0; opacity:0; }
   #panel .sl{
     display:grid; grid-template-columns:1fr auto; grid-template-rows:auto auto;
     gap:2px 6px; align-items:center;
     font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft);
     font-family: ui-sans-serif, system-ui, sans-serif;
+    white-space:nowrap;
   }
   #panel .sl span{ color:var(--hold); text-align:right; font-weight:700; }
-  #panel .sl input[type=range]{ grid-column:1 / -1; width:100%; accent-color:var(--hold); cursor:pointer; margin:0; }
+  #panel .sl input[type=range]{ grid-column:1 / -1; width:100%; min-width:126px; accent-color:var(--hold); cursor:pointer; margin:0; }
   #panel input[type=range]{ accent-color:var(--hold); cursor:pointer; }
   .chip{
     cursor:pointer; font:600 11px/1 ui-sans-serif, system-ui, sans-serif;
@@ -246,7 +269,8 @@
   }
   .chip.wide:hover{ background:rgba(245,217,155,0.2); }
   .io-row{ display:flex; gap:6px; }
-  .io-row .chip{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  /* chips share the row evenly but never clip their own label */
+  .io-row .chip{ flex:1 0 auto; min-width:0; }
 
   #palette-picker{
     position:fixed; z-index:50;
@@ -409,6 +433,10 @@
     touch-action:auto;
   }
 
+  body.phone #panel{ padding:10px 12px; }
+  body.phone #panel-toggle{ font-size:11px; padding:3px 0; }
+  body.phone #panel.collapsed{ padding:8px 12px; }
+
   /* mobile floating buttons — just two: menu + add */
   #mobile-btns{
     position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
@@ -489,6 +517,10 @@
 
   <div id="left-stack">
   <div id="panel">
+    <button id="panel-toggle" type="button" aria-expanded="true" aria-controls="panel-body">
+      <span>Controls</span><span class="caret">&#9660;</span>
+    </button>
+    <div id="panel-body">
     <label class="sl">Fade time<span id="fade-val">35s</span><input id="fade" type="range" min="8" max="160" step="1" value="35" /></label>
     <label class="sl">Bubble<span id="bub-val">100%</span><input id="bub" type="range" min="20" max="200" step="5" value="100" /></label>
     <label class="sl">Font<span id="font-val">100%</span><input id="font" type="range" min="10" max="500" step="5" value="100" /></label>
@@ -505,6 +537,7 @@
       <button id="shed-btn" class="chip">Shed</button>
     </div>
     <input type="file" id="load-file" accept="application/json" hidden />
+    </div>
   </div>
   <button id="forget-toggle">...</button>
   </div>
@@ -2193,6 +2226,15 @@
       openAddModal(pos);
     }
   });
+
+  // panel collapse
+  const panelEl = document.getElementById('panel');
+  const panelToggle = document.getElementById('panel-toggle');
+  panelToggle.addEventListener('click', () => {
+    const collapsed = panelEl.classList.toggle('collapsed');
+    panelToggle.setAttribute('aria-expanded', String(!collapsed));
+  });
+  if (isPhone) panelToggle.click();   // start folded on phones — screen is the scarce thing
 
   // fade-speed slider
   const fade = document.getElementById('fade');
