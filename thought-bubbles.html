@@ -117,13 +117,36 @@
       0 0 0 10px var(--bubble-emphasis, rgba(255,255,255,.35)),
       0 16px 38px rgba(0,0,0,.48) !important;
   }
+  /* pinned badge: a small amber disc with a tack glyph, set into the corner */
   .bubble .pin{
-    position:absolute; top:-2px; right:-2px;
-    font-size:13px; opacity:0; transform:scale(.4) rotate(-15deg);
-    transition:opacity .2s ease, transform .2s ease; pointer-events:none;
-    text-shadow:0 0 6px rgba(0,0,0,.6);
+    position:absolute; top:-7px; right:-7px;
+    width:19px; height:19px; border-radius:50%;
+    display:grid; place-items:center;
+    background:linear-gradient(160deg, #ffe0a3, #f5b942);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,.35),
+      0 0 0 2px var(--bg, #1a1a1c);
+    opacity:0; transform:scale(.3);
+    transition:opacity .18s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none;
   }
-  .bubble.held .pin{ opacity:1; transform:scale(1) rotate(-15deg); }
+  .bubble .pin svg{ width:11px; height:11px; display:block; }
+  .bubble .pin svg path{ fill:#4a3208; }
+  .bubble.held .pin{ opacity:1; transform:scale(1); }
+  /* a soft ring breathes once when a bubble is pinned */
+  .bubble.held .pin::after{
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    border:2px solid rgba(245,185,66,.75);
+    animation:pin-ping .5s ease-out 1;
+  }
+  @keyframes pin-ping{
+    from{ opacity:.9; transform:scale(.7); }
+    to  { opacity:0;  transform:scale(1.7); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bubble .pin{ transition:opacity .18s ease; }
+    .bubble.held .pin::after{ animation:none; }
+  }
 
   /* ── composer ── */
   #composer{
@@ -317,6 +340,32 @@
   body.mode-color   #sky{ cursor:pointer; }
 
   /* right-click context menu on a bubble */
+  #group-color-picker{
+    position:fixed; z-index:60;
+    background:var(--panel); border:1px solid var(--panel-line);
+    border-radius:12px; padding:10px;
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    box-shadow:0 12px 36px rgba(0,0,0,.4);
+    max-width:min(280px, calc(100vw - 24px));
+  }
+  #group-color-picker[hidden]{ display:none; }
+  #group-color-picker .gcp-title{
+    font:600 10px/1 ui-sans-serif,system-ui,sans-serif;
+    letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft); margin-bottom:8px;
+  }
+  #group-color-picker .gcp-grid{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
+  }
+  #group-color-picker .gcp-swatch{
+    width:100%; aspect-ratio:1; border-radius:6px;
+    border:1px solid rgba(128,128,128,.25); cursor:pointer;
+    padding:0; transition:transform .08s ease;
+  }
+  #group-color-picker .gcp-swatch:hover,
+  #group-color-picker .gcp-swatch:focus-visible{ transform:scale(1.12); outline:none; }
+  body.phone #group-color-picker .gcp-grid{ gap:8px; }
+
   #context-menu{
     position:fixed; z-index:30; display:flex; flex-direction:column; gap:3px;
     background:var(--panel); border:1px solid var(--panel-line);
@@ -543,6 +592,7 @@
   <button id="forget-toggle">...</button>
   </div>
   <div id="palette-picker" hidden></div>
+  <div id="group-color-picker" hidden></div>
   <div id="banner"></div>
   <div id="lightbox" hidden><img id="lightbox-img" alt="" /></div>
 
@@ -554,7 +604,8 @@
     <button data-action="pin">Pin</button>
     <button data-action="highlight">Highlight</button>
     <button data-action="boundary">Boundary</button>
-    <button data-action="color">New Color</button>
+    <button data-action="color">Color&hellip;</button>
+    <button data-action="color-group">Color Connected&hellip;</button>
     <button data-action="font-up">Increase Font Size</button>
     <button data-action="font-down">Decrease Font Size</button>
     <button data-action="size-down">Decrease Bubble Size</button>
@@ -878,7 +929,9 @@
 
     const pin = document.createElement('div');
     pin.className = 'pin';
-    pin.textContent = '📌';
+    pin.setAttribute('aria-hidden', 'true');
+    // thumbtack glyph, viewed head-on: round head, tapered needle
+    pin.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14.4 2.3a1.6 1.6 0 0 1 2.3 0l5 5a1.6 1.6 0 0 1-1.5 2.7l-2.6-.5-3.6 3.6.7 3a1.6 1.6 0 0 1-2.7 1.5l-3-3-5 5a1 1 0 0 1-1.4-1.4l5-5-3-3a1.6 1.6 0 0 1 1.5-2.7l3 .7 3.6-3.6-.5-2.6a1.6 1.6 0 0 1 .4-1.4z"/></svg>';
     el.appendChild(pin);
 
     sky.appendChild(el);
@@ -1326,6 +1379,24 @@
     return [...seen];
   }
 
+  // every bubble reachable from `start` over BOTH branch links and arrows
+  function getConnectedGroup(start){
+    const seen = new Set([start]); const stack = [start];
+    const visit = n => { if (!seen.has(n)){ seen.add(n); stack.push(n); } };
+    while (stack.length){
+      const cur = stack.pop();
+      for (const L of branchLinks){
+        if (L.a === cur) visit(L.b);
+        if (L.b === cur) visit(L.a);
+      }
+      for (const A of arrows){
+        if (A.a === cur) visit(A.b);
+        if (A.b === cur) visit(A.a);
+      }
+    }
+    return [...seen];
+  }
+
   let longPressTimer = null;
 
   function startDrag(e, b){
@@ -1357,9 +1428,10 @@
 
     // tapping a bubble while a menu is up only dismisses the menu
     let menuDismiss = false;
-    if (isPhone && (!ctxMenu.hidden || !palettePicker.hidden || sheetOpen())){
+    if (isPhone && (!ctxMenu.hidden || !palettePicker.hidden || !groupColorPicker.hidden || sheetOpen())){
       menuDismiss = true;
       closeContextMenu(); palettePicker.hidden = true; closeSheet();
+      closeGroupColorPicker();
     }
 
     if (isPhone && !menuDismiss){
@@ -2071,8 +2143,11 @@
   const ctxPreview = document.getElementById('ctx-preview');
   let ctxTarget = null;
 
+  let ctxAtX = 0, ctxAtY = 0;   // where the menu was opened, for follow-up popups
+
   function openContextMenu(b, x, y){
     ctxTarget = b;
+    ctxAtX = x; ctxAtY = y;
     ctxPreview.textContent = b.text;
     const pinBtn = ctxMenu.querySelector('button[data-action="pin"]');
     if (pinBtn) pinBtn.textContent = b.frozen ? 'Unpin' : 'Pin';
@@ -2110,6 +2185,57 @@
     b.txt.style.fontSize = fontForBubble(b) + 'px';
   }
 
+  // ── set one color across a whole connected group (branches + arrows) ──
+  const groupColorPicker = document.getElementById('group-color-picker');
+
+  function closeGroupColorPicker(){ groupColorPicker.hidden = true; }
+
+  // targets: the bubbles to recolor. label: heading above the swatches.
+  function openColorPicker(targets, label, x, y){
+    groupColorPicker.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.className = 'gcp-title';
+    title.textContent = label;
+    groupColorPicker.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'gcp-grid';
+    palette().forEach((hex, i) => {
+      const sw = document.createElement('button');
+      sw.className = 'gcp-swatch';
+      sw.style.background = '#' + hex;
+      sw.title = '#' + hex;
+      sw.addEventListener('click', () => {
+        for (const n of targets){
+          n.hue = i;
+          applyColor(n);
+          n.el.classList.remove('pop'); void n.el.offsetWidth; n.el.classList.add('pop');
+        }
+        closeGroupColorPicker();
+      });
+      grid.appendChild(sw);
+    });
+    groupColorPicker.appendChild(grid);
+
+    groupColorPicker.hidden = false;
+    groupColorPicker.style.left = x + 'px';
+    groupColorPicker.style.top = y + 'px';
+    requestAnimationFrame(() => {
+      const r = groupColorPicker.getBoundingClientRect();
+      const left = Math.min(x, window.innerWidth - r.width - 8);
+      const top = Math.min(y, window.innerHeight - r.height - 8);
+      groupColorPicker.style.left = Math.max(8, left) + 'px';
+      groupColorPicker.style.top = Math.max(8, top) + 'px';
+    });
+  }
+
+  groupColorPicker.addEventListener('pointerdown', e => e.stopPropagation());
+  addEventListener('pointerdown', e => {
+    if (!groupColorPicker.hidden && !groupColorPicker.contains(e.target))
+      closeGroupColorPicker();
+  });
+
   function runCtxAction(action, b){
     if (!b) return;
     closeContextMenu();   // close first so arrowSource remains set
@@ -2119,7 +2245,14 @@
     else if (action === 'pin') setHeld(b, !b.frozen);
     else if (action === 'highlight') setHighlight(b, !b.highlighted);
     else if (action === 'boundary') setBoundaryEmphasis(b, !b.emphasis);
-    else if (action === 'color') recolor(b);
+    else if (action === 'color') openColorPicker([b], 'Bubble color', ctxAtX, ctxAtY);
+    else if (action === 'color-group'){
+      const group = getConnectedGroup(b);
+      const label = group.length === 1
+        ? 'Not connected — 1 bubble'
+        : 'Color ' + group.length + ' connected';
+      openColorPicker(group, label, ctxAtX, ctxAtY);
+    }
     else if (action === 'font-up') bumpBubbleFont(b, 1.15);
     else if (action === 'font-down') bumpBubbleFont(b, 1/1.15);
     else if (action === 'size-down') bumpBubbleSize(b, 1/1.15);
@@ -2146,7 +2279,7 @@
 
   // ── context-menu keyboard shortcuts (only while the menu is open) ──
   const CTX_KEY_ACTIONS = {
-    b: 'branch', a: 'arrow', e: 'edit', n: 'color',
+    b: 'branch', a: 'arrow', e: 'edit', n: 'color', g: 'color-group',
     c: 'copy', x: 'break', d: 'delete', f: 'pin', h: 'highlight', k: 'boundary'
   };
   document.addEventListener('keydown', e => {
@@ -2363,7 +2496,7 @@
     if (e.key === '/' || e.key === '\\'){ e.preventDefault(); input.focus(); return; }
     const k = e.key.toLowerCase();
     if (k === 'p') setMode('color');
-    else if (e.key === 'Escape'){ setMode(null); cancelArrowMode(); drawer.classList.remove('open'); closeContextMenu(); }
+    else if (e.key === 'Escape'){ setMode(null); cancelArrowMode(); drawer.classList.remove('open'); closeContextMenu(); closeGroupColorPicker(); }
   });
 
   function timestamp(){
@@ -2479,7 +2612,8 @@
     ctx.scale(scale, scale);
 
     // background — read the live CSS var so it always matches what's on screen
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#2c2c30';
+    const BG_HEX = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#2c2c30';
+    ctx.fillStyle = BG_HEX;
     ctx.fillRect(0, 0, W, H);
 
     // divider lines
@@ -2558,12 +2692,30 @@
       ctx.fillStyle = bubbleColor(b.hue); ctx.fill();
       ctx.restore();
 
-      // pinned ring
+      // pinned: amber badge in the top-right corner, mirroring the on-screen one
       if (b.frozen){
-        ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(245,217,155,0.9)'; ctx.lineWidth = 1.5;
+        const br = Math.max(7, Math.min(11, w * 0.055));
+        const bx = x0 + w, by = y0;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(bx, by, br + 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = BG_HEX; ctx.fill();
+        const g = ctx.createLinearGradient(bx - br, by - br, bx + br, by + br);
+        g.addColorStop(0, '#ffe0a3'); g.addColorStop(1, '#f5b942');
+        ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+        // tack: head + needle
+        ctx.strokeStyle = '#4a3208'; ctx.lineCap = 'round';
+        ctx.lineWidth = Math.max(1.2, br * 0.22);
         ctx.beginPath();
-        ctx.roundRect(x0 - 5, y0 - 5, w + 10, h + 10, CORNER + 5);
-        ctx.stroke(); ctx.setLineDash([]);
+        ctx.moveTo(bx + br * 0.34, by - br * 0.34);
+        ctx.lineTo(bx - br * 0.40, by + br * 0.40);
+        ctx.stroke();
+        ctx.lineWidth = Math.max(1.4, br * 0.30);
+        ctx.beginPath();
+        ctx.moveTo(bx - br * 0.10, by - br * 0.42);
+        ctx.lineTo(bx + br * 0.42, by + br * 0.10);
+        ctx.stroke();
+        ctx.restore();
       }
 
       // image — drawn in place of text when this bubble holds a pasted image
