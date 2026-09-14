@@ -289,7 +289,8 @@
   .pal-row:hover{ background:rgba(128,128,128,.15); }
   .pal-row.pal-active{ background:rgba(128,128,128,.22); }
   .pal-swatch{
-    width:14px; height:14px; border-radius:3px; flex:0 0 auto;
+    width:13px; height:13px; border-radius:3px; flex:0 0 auto;
+    margin-right:-1px;
   }
   .pal-name{
     font:600 10px/1 ui-sans-serif,system-ui,sans-serif;
@@ -717,14 +718,14 @@
 
   // ── color palettes ────────────────────────────────────────────────
   const PALETTES = [
-    ['264653','287271','2a9d8f','8ab17d','e9c46a','efb366','f4a261','ee8959','e76f51','e97c61'], // Ocean
-    ['ff595e','ff924c','ffca3a','c5ca30','8ac926','36949d','1982c4','4267ac','565aa0','6a4c93'], // Pop
-    ['b7094c','a01a58','892b64','723c70','5c4d7d','455e89','2e6f95','1780a1','0091ad'],         // Dusk
+    ['3fb8a8','5ec2a0','2a9d8f','8ab17d','e9c46a','efb366','f4a261','ee8959','e76f51','e97c61'], // Ocean
+    ['ff595e','ff924c','ffca3a','c5ca30','8ac926','36949d','1982c4','6f9ceb','9b8ce0','c07fd8'], // Pop
+    ['b7094c','a01a58','892b64','723c70','5c4d7d','455e89','2e6f95','15607a','0f4f66','3b2f63'], // Dusk
     ['fec5bb','fcd5ce','fae1dd','f8edeb','e8e8e4','d8e2dc','ece4db','ffe5d9','ffd7ba','fec89a'], // Blush
-    ['ffc800','f6992d','ed6a5a','a75a5a','60495a','4c7680','38a3a5','7dba60','c2d11b'],         // Sunset
+    ['ffc800','ffa62b','f6992d','ed6a5a','e08a8a','d98fa8','b78fa8','9d8ec4','7fb3c4','f0b27a'], // Sunset
     ['7890a0','8888a8','7898a0','8890a8','9090a8','88a0a0','7888a8','8090b0','9898a8','78a0a0'], // Quiet
-    ['7032f7','0f0842','b8b5ff','e5e5f9','4920c9','290085','758fff','420de5'],                   // Countable1
-    ['4038f7','9edb00','fc8c08','f0213d','feda12','00b869','1afad4','08d1fa','6926f5','ff33b0'], // Countable2
+    ['7032f7','0f0842','5b4fd6','3a2a9e','4920c9','290085','2f3fb8','420de5','1a0f5c','6321d8'], // Countable1
+    ['5f7cff','9edb00','fc8c08','f0213d','feda12','00b869','1afad4','08d1fa','a97cff','ff33b0'], // Countable2
     // grayscale — placeholder, replaced below based on color scheme
     [],
   ];
@@ -1791,8 +1792,8 @@
     PALETTES.forEach((pal, i) => {
       const row = document.createElement('div');
       row.className = 'pal-row' + (i === currentPaletteIdx ? ' pal-active' : '');
-      // show 6 swatches
-      pal.slice(0, 6).forEach(hex => {
+      // show every swatch in the palette
+      pal.forEach(hex => {
         const s = document.createElement('span');
         s.className = 'pal-swatch';
         s.style.background = '#' + hex;
