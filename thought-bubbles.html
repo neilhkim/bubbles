@@ -108,6 +108,15 @@
       0 0 40px 10px rgba(255,244,79,.55),
       0 14px 34px rgba(0,0,0,.45) !important;
   }
+  .bubble.emphasis{
+    z-index:16;
+    outline:4px solid rgba(255,255,255,.92);
+    outline-offset:4px;
+    box-shadow:
+      0 0 0 3px rgba(255,255,255,.20),
+      0 0 0 10px var(--bubble-emphasis, rgba(255,255,255,.35)),
+      0 16px 38px rgba(0,0,0,.48) !important;
+  }
   .bubble .pin{
     position:absolute; top:-2px; right:-2px;
     font-size:13px; opacity:0; transform:scale(.4) rotate(-15deg);
@@ -510,6 +519,7 @@
     <button data-action="edit">Edit</button>
     <button data-action="pin">Pin</button>
     <button data-action="highlight">Highlight</button>
+    <button data-action="boundary">Boundary</button>
     <button data-action="color">New Color</button>
     <button data-action="font-up">Increase Font Size</button>
     <button data-action="font-down">Decrease Font Size</button>
@@ -734,6 +744,7 @@
     const hex = palette()[Math.abs(Math.round(b.hue)) % palette().length];
     b.el.style.background = '#' + hex;
     b.el.style.color = textColor(hex);
+    if (b.emphasis) b.el.style.setProperty('--bubble-emphasis', '#' + hex);
   }
 
   function applyPaletteToAll(){
@@ -875,6 +886,13 @@
   function setHighlight(b, on){
     b.highlighted = on;
     b.el.classList.toggle('highlight', on);
+  }
+
+  function setBoundaryEmphasis(b, on){
+    b.emphasis = on;
+    b.el.classList.toggle('emphasis', on);
+    const hex = '#' + palette()[Math.abs(Math.round(b.hue)) % palette().length];
+    b.el.style.setProperty('--bubble-emphasis', hex);
   }
 
   // ── mobile "add a thought" popup — avoids a keyboard-anchored input bar ──
@@ -2026,6 +2044,8 @@
     if (pinBtn) pinBtn.textContent = b.frozen ? 'Unpin' : 'Pin';
     const hlBtn = ctxMenu.querySelector('button[data-action="highlight"]');
     if (hlBtn) hlBtn.textContent = b.highlighted ? 'Remove Highlight' : 'Highlight';
+    const bdBtn = ctxMenu.querySelector('button[data-action="boundary"]');
+    if (bdBtn) bdBtn.textContent = b.emphasis ? 'Remove Boundary' : 'Boundary';
     ctxMenu.hidden = false;
     ctxMenu.style.left = x + 'px';
     ctxMenu.style.top = y + 'px';
@@ -2064,6 +2084,7 @@
     else if (action === 'edit'){ openEditModal(b); closeContextMenu(); }
     else if (action === 'pin') setHeld(b, !b.frozen);
     else if (action === 'highlight') setHighlight(b, !b.highlighted);
+    else if (action === 'boundary') setBoundaryEmphasis(b, !b.emphasis);
     else if (action === 'color') recolor(b);
     else if (action === 'font-up') bumpBubbleFont(b, 1.15);
     else if (action === 'font-down') bumpBubbleFont(b, 1/1.15);
@@ -2092,7 +2113,7 @@
   // ── context-menu keyboard shortcuts (only while the menu is open) ──
   const CTX_KEY_ACTIONS = {
     b: 'branch', a: 'arrow', e: 'edit', n: 'color',
-    c: 'copy', x: 'break', d: 'delete', f: 'pin', h: 'highlight'
+    c: 'copy', x: 'break', d: 'delete', f: 'pin', h: 'highlight', k: 'boundary'
   };
   document.addEventListener('keydown', e => {
     if (ctxMenu.hidden) return;
