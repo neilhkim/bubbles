@@ -375,6 +375,19 @@
     box-shadow:0 18px 44px rgba(0,0,0,.5);
   }
   #context-menu[hidden]{ display:none; }
+  /* clickable arrows / branch lines: wide invisible hit stroke on top of each visible one */
+  #links .hit{ stroke:transparent; stroke-width:14; fill:none; pointer-events:stroke; cursor:pointer; }
+  #links .link-sel{ stroke-width:4; filter:drop-shadow(0 0 4px #fff); }
+  #link-menu{
+    position:fixed; z-index:30; display:flex; gap:6px; align-items:center;
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:10px; padding:6px 8px;
+    font:600 12px/1 ui-sans-serif, system-ui, sans-serif; color:var(--ink-soft);
+    box-shadow:0 18px 44px rgba(0,0,0,.5);
+  }
+  #link-menu[hidden]{ display:none; }
+  #link-menu button{ all:unset; cursor:pointer; padding:7px 10px; border-radius:7px; }
+  #link-menu button:hover{ background:rgba(255,255,255,.08); color:var(--ink); }
+  #link-menu #link-del:hover{ background:rgba(255,90,90,.18); color:#ffb3b3; }
   #ctx-preview{
     font-family:'Spectral', Georgia, serif; font-size:14px; line-height:1.4;
     color:var(--ink); white-space:pre-wrap; word-break:break-word;
@@ -461,8 +474,7 @@
     letter-spacing:.16em;
     color:var(--ink-soft); text-align:center;
     padding:5px 12px; border-radius:8px;
-    max-width:min(280px, 30vw);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    white-space:pre-wrap; overflow-wrap:anywhere;
     background:transparent; border:1px solid transparent;
     transition:background .18s ease, border-color .18s ease, color .18s ease;
   }
@@ -473,13 +485,13 @@
   .sec-title.empty-title:hover{ opacity:1; }
   .sec-title.editing{
     background:var(--panel); border-color:var(--hold); color:var(--ink);
-    white-space:pre; overflow:visible; text-overflow:clip; outline:none;
+    outline:none;
     font-style:normal; opacity:1;
     -webkit-user-select:text; user-select:text; touch-action:auto;
   }
   /* bigger tap target + editable caret on touch */
   body.phone .sec-title{
-    font-size:15px; padding:9px 16px; max-width:min(280px, 70vw);
+    font-size:15px; padding:9px 16px;
     touch-action:auto;
   }
 
@@ -574,6 +586,7 @@
     <label class="sl">Fade time<span id="fade-val">35s</span><input id="fade" type="range" min="8" max="160" step="1" value="35" /></label>
     <label class="sl">Bubble<span id="bub-val">100%</span><input id="bub" type="range" min="20" max="200" step="5" value="100" /></label>
     <label class="sl">Font<span id="font-val">100%</span><input id="font" type="range" min="10" max="500" step="5" value="100" /></label>
+    <label class="sl">Both<span id="both-val">100%</span><input id="both" type="range" min="20" max="300" step="5" value="100" /></label>
     <div class="io-row desktop-only">
       <button id="pause-toggle" class="chip">Pause Time</button>
       <button id="divider-btn" class="chip">Dividers</button>
@@ -581,6 +594,10 @@
     <div class="io-row desktop-only">
       <button id="save-btn" class="chip">Save</button>
       <button id="load-btn" class="chip">Load</button>
+    </div>
+    <div class="io-row desktop-only">
+      <button id="export-btn" class="chip">Copy JSON</button>
+      <button id="import-btn" class="chip">Paste JSON</button>
     </div>
     <div class="io-row desktop-only">
       <button id="palette-btn" class="chip">Palette &rarr;</button>
@@ -593,6 +610,7 @@
   </div>
   <div id="palette-picker" hidden></div>
   <div id="group-color-picker" hidden></div>
+  <div id="link-menu" hidden><span id="link-label"></span><button id="link-del">Delete</button><button id="link-cancel">Cancel</button></div>
   <div id="banner"></div>
   <div id="lightbox" hidden><img id="lightbox-img" alt="" /></div>
 
@@ -608,7 +626,10 @@
     <button data-action="color-group">Color Connected&hellip;</button>
     <button data-action="font-up">Increase Font Size</button>
     <button data-action="font-down">Decrease Font Size</button>
+    <button data-action="size-up">Increase Bubble Size</button>
     <button data-action="size-down">Decrease Bubble Size</button>
+    <button data-action="both-up">Increase Both</button>
+    <button data-action="both-down">Decrease Both</button>
     <button data-action="copy">Copy Text</button>
     <button data-action="break">Break connections</button>
     <button data-action="delete">Delete</button>
@@ -728,6 +749,7 @@
 
   let fontScale   = isPhone ? FONT_SCALE : 1.0;   // desktop: 1.0 = new 100% baseline
   let bubbleScale = isPhone ? 0.75 : 1.0;          // desktop: 1.0 = new 100% baseline
+  const BUB_SCALE0 = bubbleScale;                   // font ignores the Bubble slider: sizes are divided by bubbleScale / BUB_SCALE0
 
   const sky   = document.getElementById('sky');
   const input = document.getElementById('input');
@@ -856,13 +878,13 @@
 
   // creation-time / layout font (baseSize-driven) — natural cap applies, THEN user scale multiplies freely
   function fontForBubble(b){
-    const natural = naturalFontSize(b, b.baseSize);
+    const natural = naturalFontSize(b, b.baseSize * BUB_SCALE0 / bubbleScale);
     return clamp(Math.round(natural * fontScale * (b.fontMult || 1)), 3, 300);
   }
 
   // visual (apparent, size-driven) font — same freedom to overflow once scaled
   function visualFontSize(b){
-    const natural = naturalFontSize(b, b.size);
+    const natural = naturalFontSize(b, b.size * BUB_SCALE0 / bubbleScale);
     return clamp(Math.round(natural * fontScale * (b.fontMult || 1)), 3, 300);
   }
 
@@ -1279,6 +1301,8 @@
       el.dataset.key = key;
       el.style.left = (r.x + r.w / 2) + 'px';
       el.style.top  = (r.y + 14) + 'px';
+      el.style.width = 'max-content';
+      el.style.maxWidth = Math.max(80, r.w - 24) + 'px';   // wrap within its section
       el.title = 'Click to rename this section';
       el.addEventListener('pointerdown', e => e.stopPropagation());
       el.addEventListener('click', e => { e.stopPropagation(); startTitleEdit(el); });
@@ -2029,20 +2053,24 @@
     ln.setAttribute('stroke-linecap', 'round');
     ln.setAttribute('stroke-dasharray', '5 4');
     linksSvg.appendChild(ln);
-    branchLinks.push({ a, b, el: ln });
+    const L = { a, b, el: ln, hit: makeHit('line') };
+    L.hit.addEventListener('pointerdown', e => selectLink(L, branchLinks, 'branch', e));
+    branchLinks.push(L);
   }
 
   function removeBranchLinesFor(b){
     for (let i = branchLinks.length - 1; i >= 0; i--){
       const L = branchLinks[i];
-      if (L.a === b || L.b === b){ L.el.remove(); branchLinks.splice(i, 1); }
+      if (L.a === b || L.b === b){ L.el.remove(); L.hit.remove(); branchLinks.splice(i, 1); }
     }
   }
 
   function updateBranchLines(){
     for (const L of branchLinks){
-      L.el.setAttribute('x1', L.a.x); L.el.setAttribute('y1', L.a.y);
-      L.el.setAttribute('x2', L.b.x); L.el.setAttribute('y2', L.b.y);
+      for (const el of [L.el, L.hit]){
+        el.setAttribute('x1', L.a.x); el.setAttribute('y1', L.a.y);
+        el.setAttribute('x2', L.b.x); el.setAttribute('y2', L.b.y);
+      }
       L.el.setAttribute('stroke', bubbleColor(L.a.hue));
     }
   }
@@ -2080,7 +2108,9 @@
     el.setAttribute('fill', 'none');
     el.setAttribute('marker-end', 'url(#arrowhead)');
     linksSvg.appendChild(el);
-    arrows.push({ a, b, el });
+    const A = { a, b, el, hit: makeHit('path') };
+    A.hit.addEventListener('pointerdown', e => selectLink(A, arrows, 'arrow', e));
+    arrows.push(A);
   }
   function completeArrow(b){
     if (!arrowSource || arrowSource === b){ cancelArrowMode(); return; }
@@ -2094,7 +2124,7 @@
   function removeArrowsFor(b){
     for (let i = arrows.length - 1; i >= 0; i--){
       const A = arrows[i];
-      if (A.a === b || A.b === b){ A.el.remove(); arrows.splice(i, 1); }
+      if (A.a === b || A.b === b){ A.el.remove(); A.hit.remove(); arrows.splice(i, 1); }
     }
   }
   function updateArrows(){
@@ -2120,9 +2150,51 @@
       // curved: control point offset perpendicularly
       const mx = (sx+ex)/2 - ny * 15, my = (sy+ey)/2 + nx * 15;
       A.el.setAttribute('d', `M${sx},${sy} Q${mx},${my} ${ex},${ey}`);
+      A.hit.setAttribute('d', A.el.getAttribute('d'));
       A.el.setAttribute('stroke', bubbleColor(A.a.hue));
     }
   }
+
+  // ── select one arrow / branch line, then confirm deletion ──
+  const linkMenu = document.getElementById('link-menu');
+  let selLink = null;   // { link, list }
+  function makeHit(tag){
+    const el = document.createElementNS(SVG_NS, tag);
+    el.classList.add('hit');
+    linksSvg.appendChild(el);
+    return el;
+  }
+  function selectLink(link, list, kind, e){
+    e.stopPropagation(); e.preventDefault();
+    clearLinkSel();
+    selLink = { link, list };
+    link.el.classList.add('link-sel');
+    document.getElementById('link-label').textContent = 'Delete this ' + kind + '?';
+    linkMenu.hidden = false;
+    linkMenu.style.left = Math.min(e.clientX + 8, innerWidth - 240) + 'px';
+    linkMenu.style.top  = Math.min(e.clientY + 8, innerHeight - 50) + 'px';
+  }
+  function clearLinkSel(){
+    if (selLink) selLink.link.el.classList.remove('link-sel');
+    selLink = null;
+    linkMenu.hidden = true;
+  }
+  function deleteSelLink(){
+    if (!selLink) return;
+    const { link, list } = selLink;
+    link.el.remove(); link.hit.remove();
+    const i = list.indexOf(link); if (i >= 0) list.splice(i, 1);
+    clearLinkSel();
+  }
+  document.getElementById('link-del').addEventListener('click', deleteSelLink);
+  document.getElementById('link-cancel').addEventListener('click', clearLinkSel);
+  linkMenu.addEventListener('pointerdown', e => e.stopPropagation());
+  addEventListener('pointerdown', () => { if (selLink) clearLinkSel(); });
+  document.addEventListener('keydown', e => {
+    if (!selLink) return;
+    if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'Enter'){ e.preventDefault(); deleteSelLink(); }
+    else if (e.key === 'Escape') clearLinkSel();
+  });
 
   document.getElementById('branch-ok').addEventListener('click', commitBranch);
   document.getElementById('branch-cancel').addEventListener('click', closeBranchModal);
@@ -2177,7 +2249,14 @@
     b.fontMult = clamp((b.fontMult || 1) * factor, 0.1, 20);
     b.txt.style.fontSize = fontForBubble(b) + 'px';
   }
+  // outline only: rescale fontMult so the text keeps its pixel size
   function bumpBubbleSize(b, factor){
+    const font0 = naturalFontSize(b, b.baseSize);
+    bumpBubbleBoth(b, factor);
+    b.fontMult = clamp(b.fontMult * font0 / naturalFontSize(b, b.baseSize), 0.1, 20);
+    b.txt.style.fontSize = fontForBubble(b) + 'px';
+  }
+  function bumpBubbleBoth(b, factor){
     b.baseSize = clamp(b.baseSize * factor, 14, 400);
     b.size     = clamp(b.size     * factor, GONE_AT + 2, 400);
     b.el.style.width  = Math.round(b.baseSize * CARD_RATIO) + 'px';
@@ -2255,7 +2334,10 @@
     }
     else if (action === 'font-up') bumpBubbleFont(b, 1.15);
     else if (action === 'font-down') bumpBubbleFont(b, 1/1.15);
+    else if (action === 'size-up') bumpBubbleSize(b, 1.15);
     else if (action === 'size-down') bumpBubbleSize(b, 1/1.15);
+    else if (action === 'both-up') bumpBubbleBoth(b, 1.15);
+    else if (action === 'both-down') bumpBubbleBoth(b, 1/1.15);
     else if (action === 'copy'){
       const ta = document.createElement('textarea');
       ta.value = b.text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
@@ -2481,6 +2563,19 @@
     refreshBubbleFonts();
   });
 
+  // both slider — scales bubble and font together, relative to where it was
+  const both = document.getElementById('both');
+  const bothVal = document.getElementById('both-val');
+  let prevBoth = 1;
+  both.addEventListener('input', () => {
+    const ratio = (+both.value / 100) / prevBoth;
+    prevBoth = +both.value / 100;
+    bothVal.textContent = both.value + '%';
+    fontScale = clamp(fontScale * ratio, +font.min / 100, +font.max / 100);
+    font.value = Math.round(fontScale * 100); fontVal.textContent = font.value + '%';
+    setBubbleScale(bubbleScale * ratio);
+  });
+
   let suppressResize = false;
   [input, addInput, eInput, bInput].forEach(el => {
     el.addEventListener('focus', () => { suppressResize = true; });
@@ -2514,7 +2609,7 @@
       bubbles: bubbles.map(b => ({
         id: b.id, text: b.text, hue: b.hue,
         x: b.x, y: b.y, size: b.size, baseSize: b.baseSize,
-        frozen: !!b.frozen, highlighted: !!b.highlighted, image: b.image || undefined
+        fontMult: b.fontMult, frozen: !!b.frozen, highlighted: !!b.highlighted, image: b.image || undefined
       })),
       forgotten: forgotten.map(f => ({ id: f.id, text: f.text, baseSize: f.baseSize, hue: f.hue })),
       branchLinks: branchLinks.map(L => ({ a: L.a.id, b: L.b.id })),
@@ -2527,6 +2622,9 @@
 
   function clearCanvas(){
     for (const b of [...bubbles]) b.el.remove();
+    for (const L of [...branchLinks, ...arrows]){ L.el.remove(); L.hit.remove(); }
+    branchLinks.length = 0; arrows.length = 0;
+    clearLinkSel();
     bubbles.length = 0;
     forgotten.length = 0;
     renderForgotten();
@@ -2550,6 +2648,7 @@
       });
       b.size = bd.size || b.baseSize;
       b.grewIn = true;
+      if (bd.fontMult){ b.fontMult = bd.fontMult; if (b.txt) b.txt.style.fontSize = fontForBubble(b) + 'px'; }
       if (bd.highlighted) setHighlight(b, true);
       byId.set(bd.id, b);
       maxId = Math.max(maxId, bd.id || 0);
@@ -2779,6 +2878,17 @@
     } catch(err){ flashLabel(e.currentTarget, 'Error!'); console.error('Save failed:', err); }
   });
 
+  document.getElementById('export-btn').addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    try { await navigator.clipboard.writeText(JSON.stringify(serializeState(), null, 2)); flashLabel(btn, 'Copied!'); }
+    catch(err){ flashLabel(btn, 'Error!'); console.error('Copy failed:', err); }
+  });
+  document.getElementById('import-btn').addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    try { loadState(JSON.parse(await navigator.clipboard.readText())); flashLabel(btn, 'Loaded!'); }
+    catch(err){ flashLabel(btn, 'Error!'); console.error('Paste failed:', err); }
+  });
+
   const loadFile = document.getElementById('load-file');
   document.getElementById('load-btn').addEventListener('click', () => loadFile.click());
   loadFile.addEventListener('change', () => {
@@ -2837,6 +2947,22 @@
 
   toggle.addEventListener('click', () => drawer.classList.toggle('open'));
   document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
+
+  // ── autosave: keep the canvas in localStorage and restore it on reload ──
+  // (unfolding a phone like the Galaxy Z Fold can reload the page)
+  const AUTOSAVE_KEY = 'thought-bubbles-autosave';
+  function autosave(){
+    try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(serializeState())); }
+    catch(err){ console.warn('Autosave failed:', err); }
+  }
+  try {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) loadState(JSON.parse(saved));
+  } catch(err){ console.warn('Autosave restore failed:', err); }
+  setInterval(autosave, 3000);
+  addEventListener('pagehide', autosave);
+  addEventListener('resize', autosave);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
 
   input.focus();
 })();
